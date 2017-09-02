@@ -24,7 +24,7 @@ trait HasDataCapableTrait
     protected function _hasData($key)
     {
         if (!is_null($key) && !is_string($key) && !($key instanceof Stringable)) {
-            throw $this->_createInvalidArgumentException($this->__('Data key must be a stringable'), null, null, $key);
+            throw $this->_createInvalidArgumentException($this->__('Data key must be stringable'), null, null, $key);
         }
 
         $store = $this->_getDataStore();
