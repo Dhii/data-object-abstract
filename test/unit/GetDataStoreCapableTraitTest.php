@@ -1,6 +1,6 @@
 <?php
 
-namespace Dhii\Data\Object\FuncTest;
+namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataStoreCapableTrait as TestSubject;

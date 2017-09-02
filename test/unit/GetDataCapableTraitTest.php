@@ -1,23 +1,23 @@
 <?php
 
-namespace Dhii\Data\Object\FuncTest;
+namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
-use Dhii\Data\Object\HasDataCapableTrait as TestSubject;
+use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
 
 /**
  * Tests {@see TestSubject}.
  *
  * @since [*next-version*]
  */
-class HasDataCapableTraitTest extends TestCase
+class GetDataCapableTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\HasDataCapableTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\GetDataCapableTrait';
 
     /**
      * Creates a new instance of the test subject.
@@ -30,6 +30,7 @@ class HasDataCapableTraitTest extends TestCase
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
+            '_createNotFoundException',
             '_createInvalidArgumentException',
             '__',
         ]);
@@ -57,18 +58,20 @@ class HasDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      */
-    public function testHasData()
+    public function testGetData()
     {
         $key1 = 'name';
+        $val2 = uniqid('val2-');
         $data = (object) [
+            $key1 => 'Anton',
             'age' => 29,
         ];
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
-        $this->assertFalse($_subject->_hasData($key1), 'Test subject initial state is wrong');
+        $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
+        $data->{$key1} = $val2;
 
-        $data->{$key1} = uniqid('val1-');
-        $this->assertTrue($_subject->_hasData($key1), 'Test subject altered state is wrong');
+        $this->assertEquals($val2, $_subject->_getData($key1), 'Data member could not be correctly retrieved');
     }
 }

@@ -1,23 +1,23 @@
 <?php
 
-namespace Dhii\Data\Object\FuncTest;
+namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
-use Dhii\Data\Object\SetDataCapableTrait as TestSubject;
+use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
 
 /**
  * Tests {@see TestSubject}.
  *
  * @since [*next-version*]
  */
-class SetDataCapableTraitTest extends TestCase
+class UnsetDataCapableTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\SetDataCapableTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\UnsetDataCapableTrait';
 
     /**
      * Creates a new instance of the test subject.
@@ -26,11 +26,10 @@ class SetDataCapableTraitTest extends TestCase
      *
      * @return object
      */
-    public function createInstance(&$data = [])
+    public function createInstance($data = null)
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
-            '_createNotFoundException',
             '_createInvalidArgumentException',
             '__',
         ]);
@@ -58,20 +57,19 @@ class SetDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      */
-    public function testSetData()
+    public function testHasData()
     {
         $key1 = 'name';
-        $val1 = uniqid('val1-');
-        $val2 = uniqid('val2-');
         $data = (object) [
-            $key1 => $val1,
+            $key1 => uniqid('val1-'),
             'age' => 29,
         ];
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
-        $this->assertEquals($val1, $data->{$key1}, 'The initial state of the data member is wrong');
-        $_subject->_setData([$key1 => $val2]);
-        $this->assertEquals($val2, $data->{$key1}, 'The new state of the data member is wrong');
+        $this->assertObjectHasAttribute($key1, $data, 'Test data initial state is wrong');
+
+        $_subject->_unsetData([$key1]);
+        $this->assertObjectNotHasAttribute($key1, $data, 'Test data altered state is wrong');
     }
 }

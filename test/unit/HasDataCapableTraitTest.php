@@ -1,23 +1,23 @@
 <?php
 
-namespace Dhii\Data\Object\FuncTest;
+namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
-use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
+use Dhii\Data\Object\HasDataCapableTrait as TestSubject;
 
 /**
  * Tests {@see TestSubject}.
  *
  * @since [*next-version*]
  */
-class UnsetDataCapableTraitTest extends TestCase
+class HasDataCapableTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\UnsetDataCapableTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\HasDataCapableTrait';
 
     /**
      * Creates a new instance of the test subject.
@@ -61,15 +61,14 @@ class UnsetDataCapableTraitTest extends TestCase
     {
         $key1 = 'name';
         $data = (object) [
-            $key1 => uniqid('val1-'),
             'age' => 29,
         ];
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
-        $this->assertObjectHasAttribute($key1, $data, 'Test data initial state is wrong');
+        $this->assertFalse($_subject->_hasData($key1), 'Test subject initial state is wrong');
 
-        $_subject->_unsetData([$key1]);
-        $this->assertObjectNotHasAttribute($key1, $data, 'Test data altered state is wrong');
+        $data->{$key1} = uniqid('val1-');
+        $this->assertTrue($_subject->_hasData($key1), 'Test subject altered state is wrong');
     }
 }

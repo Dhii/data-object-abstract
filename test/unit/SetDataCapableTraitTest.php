@@ -1,23 +1,23 @@
 <?php
 
-namespace Dhii\Data\Object\FuncTest;
+namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
-use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
+use Dhii\Data\Object\SetDataCapableTrait as TestSubject;
 
 /**
  * Tests {@see TestSubject}.
  *
  * @since [*next-version*]
  */
-class GetDataCapableTraitTest extends TestCase
+class SetDataCapableTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\GetDataCapableTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\SetDataCapableTrait';
 
     /**
      * Creates a new instance of the test subject.
@@ -26,7 +26,7 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @return object
      */
-    public function createInstance($data = null)
+    public function createInstance(&$data = [])
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
@@ -58,20 +58,20 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      */
-    public function testGetData()
+    public function testSetData()
     {
         $key1 = 'name';
+        $val1 = uniqid('val1-');
         $val2 = uniqid('val2-');
         $data = (object) [
-            $key1 => 'Anton',
+            $key1 => $val1,
             'age' => 29,
         ];
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
-        $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
-        $data->{$key1} = $val2;
-
-        $this->assertEquals($val2, $_subject->_getData($key1), 'Data member could not be correctly retrieved');
+        $this->assertEquals($val1, $data->{$key1}, 'The initial state of the data member is wrong');
+        $_subject->_setData([$key1 => $val2]);
+        $this->assertEquals($val2, $data->{$key1}, 'The new state of the data member is wrong');
     }
 }
