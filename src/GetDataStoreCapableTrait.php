@@ -9,17 +9,19 @@ namespace Dhii\Data\Object;
  */
 trait GetDataStoreCapableTrait
 {
-    protected $dataStore = [];
+    protected $dataStore;
 
     /**
      * Retrieves a pointer to the data store.
      *
      * @since [*next-version*]
      *
-     * @return array The data store.
+     * @return obj The data store.
      */
-    protected function &_getDataStore()
+    protected function _getDataStore()
     {
-        return $this->dataStore;
+        return $this->dataStore === null
+                ? $this->dataStore = new \stdClass()
+                : $this->dataStore;
     }
 }

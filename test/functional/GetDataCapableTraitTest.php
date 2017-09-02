@@ -26,7 +26,7 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @return object
      */
-    public function createInstance(&$data = [])
+    public function createInstance($data = null)
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
@@ -36,9 +36,7 @@ class GetDataCapableTraitTest extends TestCase
         ]);
 
         $mock->method('_getDataStore')
-                ->will($this->returnCallback(function &() use (&$data) {
-                    return $data;
-                }));
+                ->will($this->returnValue($data));
 
         return $mock;
     }
@@ -62,14 +60,18 @@ class GetDataCapableTraitTest extends TestCase
      */
     public function testGetData()
     {
-        $data = [
-            'name' => 'Anton',
+        $key1 = 'name';
+        $val2 = uniqid('val2-');
+        $data = (object) [
+            $key1 => 'Anton',
             'age' => 29,
         ];
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
-        $this->assertEquals($data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
-        $this->assertEquals('Anton', $_subject->_getData('name'), 'Data member could not be correctly retrieved');
+        $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
+        $data->{$key1} = $val2;
+
+        $this->assertEquals($val2, $_subject->_getData($key1), 'Data member could not be correctly retrieved');
     }
 }

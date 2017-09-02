@@ -28,19 +28,19 @@ trait GetDataCapableTrait
             throw $this->_createInvalidArgumentException($this->__('Data key must be a stringable'), null, null, $key);
         }
 
-        $store = &$this->_getDataStore();
+        $store = $this->_getDataStore();
 
         // Return whole set
         if (is_null($key)) {
-            return $store;
+            return (array) $store;
         }
 
         $key = (string) $key;
-        if (!array_key_exists($key, $store)) {
+        if (!property_exists($store, $key)) {
             throw $this->_createNotFoundException($this->__('Data key not found'), $key);
         }
 
-        return $store[$key];
+        return $store->{$key};
     }
 
     /**
@@ -50,7 +50,7 @@ trait GetDataCapableTrait
      *
      * @return mixed The data store.
      */
-    abstract protected function &_getDataStore();
+    abstract protected function _getDataStore();
 
     /**
      * Creates a new not found exception.

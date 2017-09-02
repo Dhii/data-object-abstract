@@ -52,21 +52,19 @@ class GetDataStoreCapableTraitTest extends TestCase
      */
     public function testGetDataStore()
     {
-        $subject = $this->createInstance();
-        $_subject = new \ReflectionClass($subject);
-        $_method = $_subject->getMethod('_getDataStore');
-        $_method->setAccessible(true);
-        $_method = $_method->getClosure($subject);
+        $data = new \stdClass();
+        $subject = $this->createInstance($data);
+        $_subject = $this->reflect($subject);
         $key1 = uniqid('key1-');
         $val1 = uniqid('val1-');
 
-        $data = &$_method();
+        $result = $_subject->_getDataStore();
+        $this->assertEquals($data, $result, 'Initial data state was not an empty array');
 
-        $this->assertEquals([], $data, 'Initial data state was not an empty array');
-        $data[$key1] = $val1;
-
-        $newData = $_method();
-        $this->assertArrayHasKey($key1, $newData, 'Internal storage does not reflect new state');
-        $this->assertEquals($val1, $newData[$key1], 'Internal storage does not reflect new state');
+        $_subject->dataStore = $data;
+        $data->{$key1} = $val1;
+        $newData = $_subject->_getDataStore();
+        $this->assertObjectHasAttribute($key1, $newData, 'Internal storage does not reflect new state');
+        $this->assertEquals($val1, $newData->{$key1}, 'Internal storage does not reflect new state');
     }
 }
