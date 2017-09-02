@@ -51,6 +51,11 @@ class AbstractDataObjectTest extends TestCase
         );
     }
 
+    /**
+     * Tests whether getting, setting, checking, and unsetting data work well together on an object.
+     *
+     * @since [*next-version*]
+     */
     public function testSetGetHasUnsetData()
     {
         $subject = $this->createInstance();
