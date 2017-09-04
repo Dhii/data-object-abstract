@@ -9,6 +9,13 @@ namespace Dhii\Data\Object;
  */
 trait GetDataStoreCapableTrait
 {
+    /**
+     * The data store.
+     *
+     * @since [*next-version*]
+     *
+     * @var object
+     */
     protected $dataStore;
 
     /**
