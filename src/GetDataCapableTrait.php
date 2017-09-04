@@ -48,7 +48,7 @@ trait GetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return mixed The data store.
+     * @return object The data store.
      */
     abstract protected function _getDataStore();
 
