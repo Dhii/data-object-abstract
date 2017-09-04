@@ -16,7 +16,7 @@ trait GetDataStoreCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return obj The data store.
+     * @return object The data store.
      */
     protected function _getDataStore()
     {
