@@ -1,6 +1,6 @@
 <?php
 
-namespace Dhii\Parser\Tokenizer\FuncTest;
+namespace Dhii\Data\Object\FuncTest;
 
 use Xpmock\TestCase;
 use Dhii\Data\Object\AbstractDataObject as TestSubject;
