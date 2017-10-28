@@ -75,7 +75,7 @@ class SetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that the reference to a data store is returned correctly.
+     * Tests that data can be set correctly.
      *
      * @since [*next-version*]
      */

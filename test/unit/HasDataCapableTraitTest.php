@@ -95,7 +95,7 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that unsetting data works correctly correctly.
+     * Tests that checking for data existence works correctly.
      *
      * @since [*next-version*]
      */
@@ -115,7 +115,7 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that unsetting data works correctly correctly when using a stringable object as key.
+     * Tests that checking for data existence works correctly when using a stringable object as key.
      *
      * @since [*next-version*]
      */
@@ -136,7 +136,7 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that unsetting data fails correctly when using invalid key.
+     * Tests that checking for data existence works correctly when using invalid key.
      *
      * @since [*next-version*]
      */

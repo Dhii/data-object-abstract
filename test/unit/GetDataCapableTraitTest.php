@@ -168,7 +168,7 @@ class GetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that using a stringable object key works as expected.
+     * Tests that data retrieval works correctly when using a stringable object key.
      *
      * @since [*next-version*]
      */
