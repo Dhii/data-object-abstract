@@ -84,7 +84,6 @@ trait UnsetDataCapableTrait
      *
      * @since [*next-version*]
      * @see sprintf()
-     * @see _translate()
      *
      * @param string $string  The format string to translate.
      * @param array  $args    Placeholder values to replace in the string.
