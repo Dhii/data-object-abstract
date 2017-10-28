@@ -4,6 +4,7 @@ namespace Dhii\Data\Object;
 
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
+use InvalidArgumentException;
 
 /**
  * Functionality for data checking.
@@ -43,7 +44,7 @@ trait HasDataCapableTrait
     abstract protected function _getDataStore();
 
     /**
-     * Creates a new Dhii invalid argument exception.
+     * Creates a new invalid argument exception.
      *
      * @since [*next-version*]
      *
@@ -52,7 +53,7 @@ trait HasDataCapableTrait
      * @param RootException|null     $previous The inner exception for chaining, if any.
      * @param mixed|null             $argument The invalid argument, if any.
      *
-     * @return InvalidArgumentExceptionInterface The new exception.
+     * @return InvalidArgumentException The new exception.
      */
     abstract protected function _createInvalidArgumentException(
             $message = null,
