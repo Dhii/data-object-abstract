@@ -53,11 +53,11 @@ class UnsetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that the reference to a data store is returned correctly.
+     * Tests that unsetting data is done correctly.
      *
      * @since [*next-version*]
      */
-    public function testHasData()
+    public function testUnsetData()
     {
         $key1 = 'name';
         $data = (object) [
