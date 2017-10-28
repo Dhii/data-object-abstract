@@ -142,7 +142,7 @@ class HasDataCapableTraitTest extends TestCase
     public function testHasDataInvalidKeyFailure()
     {
         $key = new \stdClass();
-        $subject = $this->createInstance((object)[]);
+        $subject = $this->createInstance((object) []);
         $_subject = $this->reflect($subject);
 
         $this->setExpectedException('InvalidArgumentException');
