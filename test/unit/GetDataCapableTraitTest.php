@@ -4,6 +4,9 @@ namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
+use Psr\Container\NotFoundExceptionInterfaces;
+use InvalidArgumentException;
+use Dhii\Util\String\StringableInterface as Stringable;
 
 /**
  * Tests {@see TestSubject}.
@@ -30,13 +33,102 @@ class GetDataCapableTraitTest extends TestCase
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
-            '_createNotFoundException',
-            '_createInvalidArgumentException',
             '__',
         ]);
 
         $mock->method('_getDataStore')
                 ->will($this->returnValue($data));
+        $mock->method('_createNotFoundException')
+                ->will($this->returnCallback(function ($message) {
+                    return $this->createNotFoundException($message);
+                }));
+        $mock->method('_createInvalidArgumentException')
+                ->will($this->returnCallback(function ($message) {
+                    return $this->createInvalidArgumentException($message);
+                }));
+
+        return $mock;
+    }
+
+    /**
+     * Creates a mock that both extends a class and implements interfaces.
+     *
+     * This is particularly useful for cases where the mock is based on an
+     * internal class, such as in the case with exceptions. Helps to avoid
+     * writing hard-coded stubs.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $className      Name of the class for the mock to extend.
+     * @param string $interfaceNames Names of the interfaces for the mock to implement.
+     *
+     * @return object The object that extends and implements the specified class and interfaces.
+     */
+    public function mockClassAndInterfaces($className, $interfaceNames = [])
+    {
+        $paddingClassName = uniqid($className);
+        $definition = vsprintf('abstract class %1$s extends %2$s implements %3$s {}', [
+            $paddingClassName,
+            $className,
+            implode(', ', $interfaceNames),
+        ]);
+        eval($definition);
+
+        return $this->getMockForAbstractClass($paddingClassName);
+    }
+
+    /**
+     * Creates a new Not Found exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return NotFoundExceptionInterfaces The new exception.
+     */
+    public function createNotFoundException($message = '')
+    {
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface']);
+        $mock->method('getMessage')
+                ->will($this->returnValue($message));
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new Invalid Argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return InvalidArgumentException The new exception.
+     */
+    public function createInvalidArgumentException($message = '')
+    {
+        $mock = $this->getMock('InvalidArgumentException');
+
+        $mock->method('getMessage')
+                ->will($this->returnValue($message));
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new stringable object.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $string The string that the object will represent.
+     *
+     * @return Stringable The new stringable.
+     */
+    public function createStringable($string)
+    {
+        $mock = $this->getMock('Dhii\Util\String\StringableInterface');
+
+        $mock->method('__toString')
+                ->will($this->returnValue($string));
 
         return $mock;
     }
@@ -73,5 +165,59 @@ class GetDataCapableTraitTest extends TestCase
         $data->{$key1} = $val2;
 
         $this->assertEquals($val2, $_subject->_getData($key1), 'Data member could not be correctly retrieved');
+    }
+
+    /**
+     * Tests that using a stringable object key works as expected.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataStringable()
+    {
+        $key = uniqid('key-');
+        $value = uniqid('value-');
+        $stringable = $this->createStringable($key);
+        $data = (object) [
+            $key => $value,
+        ];
+        $subject = $this->createInstance($data);
+        $_subject = $this->reflect($subject);
+
+        $this->assertEquals($value, $_subject->_getData($stringable), 'Data member could not be correctly retrieved');
+    }
+
+    /**
+     * Tests that accessing a non-existing key fails correctly.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataNotFoundFailure()
+    {
+        $key = uniqid('key-');
+        $value = uniqid('value-');
+        $key2 = uniqid('key2-');
+        $data = (object) [
+            $key => $value,
+        ];
+        $subject = $this->createInstance($data);
+        $_subject = $this->reflect($subject);
+
+        $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
+        $_subject->_getData($key2);
+    }
+
+    /**
+     * Tests that passing an invalid key fails correctly.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataInvalidKeyFailure()
+    {
+        $key = new \stdClass();
+        $subject = $this->createInstance([]);
+        $_subject = $this->reflect($subject);
+
+        $this->setExpectedException('InvalidArgumentException');
+        $_subject->_getData($key);
     }
 }
