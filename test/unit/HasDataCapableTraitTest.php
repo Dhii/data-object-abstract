@@ -53,7 +53,7 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that the reference to a data store is returned correctly.
+     * Tests that unsetting data works correctly correctly.
      *
      * @since [*next-version*]
      */
