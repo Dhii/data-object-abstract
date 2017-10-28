@@ -30,13 +30,34 @@ class SetDataCapableTraitTest extends TestCase
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
-            '_createNotFoundException',
-            '_createInvalidArgumentException',
             '__',
         ]);
 
         $mock->method('_getDataStore')
                 ->will($this->returnValue($data));
+        $mock->method('_createInvalidArgumentException')
+                ->will($this->returnCallback(function ($message) {
+                    return $this->createInvalidArgumentException($message);
+                }));
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new Invalid Argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return InvalidArgumentException The new exception.
+     */
+    public function createInvalidArgumentException($message = '')
+    {
+        $mock = $this->getMock('InvalidArgumentException');
+
+        $mock->method('getMessage')
+                ->will($this->returnValue($message));
 
         return $mock;
     }
@@ -73,5 +94,20 @@ class SetDataCapableTraitTest extends TestCase
         $this->assertEquals($val1, $data->{$key1}, 'The initial state of the data member is wrong');
         $_subject->_setData([$key1 => $val2]);
         $this->assertEquals($val2, $data->{$key1}, 'The new state of the data member is wrong');
+    }
+
+    /**
+     * Tests that using an invalid data map fails correctly.
+     *
+     * @since [*next-version*]
+     */
+    public function testSetDataInvalidMapFailure()
+    {
+        $data = new \stdClass();
+        $subject = $this->createInstance($data);
+        $_subject = $this->reflect($subject);
+
+        $this->setExpectedException('InvalidArgumentException');
+        $_subject->_setData($data);
     }
 }
