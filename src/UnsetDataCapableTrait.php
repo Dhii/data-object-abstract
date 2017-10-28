@@ -6,6 +6,7 @@ use Traversable;
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
 use InvalidArgumentException;
+use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Functionality for data retrieval.
@@ -54,6 +55,8 @@ trait UnsetDataCapableTrait
      * @param RootException|null     $previous The inner exception, if any.
      *
      * @since [*next-version*]
+     *
+     * @return NotFoundExceptionInterface The new exception.
      */
     abstract protected function _createNotFoundException($message = null, $dataKey = null, RootException $previous = null);
 
