@@ -34,6 +34,7 @@ class GetDataCapableTraitTest extends TestCase
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
             '__',
+            '_normalizeString',
         ]);
 
         $mock->method('_getDataStore')
@@ -45,6 +46,10 @@ class GetDataCapableTraitTest extends TestCase
         $mock->method('_createInvalidArgumentException')
                 ->will($this->returnCallback(function ($message) {
                     return $this->createInvalidArgumentException($message);
+                }));
+        $mock->method('_normalizeString')
+                ->will($this->returnCallback(function ($string) {
+                    return (string) $string;
                 }));
 
         return $mock;
@@ -161,6 +166,10 @@ class GetDataCapableTraitTest extends TestCase
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($key1));
+
         $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
         $data->{$key1} = $val2;
 
@@ -183,6 +192,10 @@ class GetDataCapableTraitTest extends TestCase
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($stringable));
+
         $this->assertEquals($value, $_subject->_getData($stringable), 'Data member could not be correctly retrieved');
     }
 
@@ -202,22 +215,11 @@ class GetDataCapableTraitTest extends TestCase
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($key2));
+
         $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
         $_subject->_getData($key2);
-    }
-
-    /**
-     * Tests that passing an invalid key fails correctly.
-     *
-     * @since [*next-version*]
-     */
-    public function testGetDataInvalidKeyFailure()
-    {
-        $key = new \stdClass();
-        $subject = $this->createInstance([]);
-        $_subject = $this->reflect($subject);
-
-        $this->setExpectedException('InvalidArgumentException');
-        $_subject->_getData($key);
     }
 }
