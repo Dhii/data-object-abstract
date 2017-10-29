@@ -30,11 +30,9 @@ trait UnsetDataCapableTrait
 
         $store = $this->_getDataStore();
         foreach ($keys as $_idx => $_key) {
-            if (!is_string($_key) && !($_key instanceof Stringable)) {
-                throw $this->_createInvalidArgumentException($this->__('Data key #%1$s must be stringable', $_idx), null, null, $keys);
-            }
+            $_key = $this->_normalizeString($_key);
 
-            unset($store->{(string) $_key});
+            unset($store->{$_key});
         }
     }
 
@@ -92,4 +90,20 @@ trait UnsetDataCapableTrait
      * @return string The translated string.
      */
     abstract protected function __($string, $args = [], $context = null);
+
+    /**
+     * Normalizes a value to its string representation.
+     *
+     * The values that can be normalized are any scalar values, as well as
+     * {@see StringableInterface).
+     *
+     * @since [*next-version*]
+     *
+     * @param Stringable|string|int|float|bool $subject The value to normalize to string.
+     *
+     * @throws InvalidArgumentException If the value cannot be normalized.
+     *
+     * @return string The string that resulted from normalization.
+     */
+    abstract protected function _normalizeString($subject);
 }
