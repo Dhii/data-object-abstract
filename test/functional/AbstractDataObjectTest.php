@@ -32,6 +32,7 @@ class AbstractDataObjectTest extends TestCase
                 ->_createInvalidArgumentException()
                 ->_createNotFoundException()
                 ->__()
+                ->_normalizeString($this->returnArgument(0))
                 ->new();
 
         return $mock;
