@@ -32,6 +32,7 @@ class UnsetDataCapableTraitTest extends TestCase
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
             '__',
+            '_normalizeString',
         ]);
 
         $mock->method('_getDataStore')
@@ -39,6 +40,10 @@ class UnsetDataCapableTraitTest extends TestCase
         $mock->method('_createInvalidArgumentException')
                 ->will($this->returnCallback(function ($message) {
                     return $this->createInvalidArgumentException($message);
+                }));
+        $mock->method('_normalizeString')
+                ->will($this->returnCallback(function ($string) {
+                    return (string) $string;
                 }));
 
         return $mock;
@@ -111,6 +116,10 @@ class UnsetDataCapableTraitTest extends TestCase
 
         $this->assertObjectHasAttribute($key1, $data, 'Test data initial state is wrong');
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($key1));
+
         $_subject->_unsetData([$key1]);
         $this->assertObjectNotHasAttribute($key1, $data, 'Test data altered state is wrong');
     }
@@ -131,23 +140,12 @@ class UnsetDataCapableTraitTest extends TestCase
         $subject = $this->createInstance($data);
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($stringable));
+
         $_subject->_unsetData([$stringable]);
         $this->assertObjectNotHasAttribute($key, $data, 'Test data altered state is wrong');
-    }
-
-    /**
-     * Tests that unsetting data fails correctly when given invalid key.
-     *
-     * @since [*next-version*]
-     */
-    public function testUnsetDataInvalidKeyFailure()
-    {
-        $key = new \stdClass();
-        $subject = $this->createInstance([]);
-        $_subject = $this->reflect($subject);
-
-        $this->setExpectedException('InvalidArgumentException');
-        $_subject->_unsetData([$key]);
     }
 
     /**
