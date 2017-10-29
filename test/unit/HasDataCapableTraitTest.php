@@ -32,6 +32,7 @@ class HasDataCapableTraitTest extends TestCase
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
             '__',
+            '_normalizeString',
         ]);
 
         $mock->method('_getDataStore')
@@ -39,6 +40,10 @@ class HasDataCapableTraitTest extends TestCase
         $mock->method('_createInvalidArgumentException')
                 ->will($this->returnCallback(function ($message) {
                     return $this->createInvalidArgumentException($message);
+                }));
+        $mock->method('_normalizeString')
+                ->will($this->returnCallback(function ($string) {
+                    return (string) $string;
                 }));
 
         return $mock;
@@ -110,6 +115,10 @@ class HasDataCapableTraitTest extends TestCase
 
         $this->assertFalse($_subject->_hasData($key1), 'Test subject initial state is wrong');
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($key1));
+
         $data->{$key1} = uniqid('val1-');
         $this->assertTrue($_subject->_hasData($key1), 'Test subject altered state is wrong');
     }
@@ -131,22 +140,11 @@ class HasDataCapableTraitTest extends TestCase
 
         $this->assertFalse($_subject->_hasData($stringable), 'Test subject initial state is wrong');
 
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeString')
+                ->with($this->equalTo($stringable));
+
         $data->{$key} = uniqid('val1-');
         $this->assertTrue($_subject->_hasData($stringable), 'Test subject altered state is wrong');
-    }
-
-    /**
-     * Tests that checking for data existence works correctly when using invalid key.
-     *
-     * @since [*next-version*]
-     */
-    public function testHasDataInvalidKeyFailure()
-    {
-        $key = new \stdClass();
-        $subject = $this->createInstance((object) []);
-        $_subject = $this->reflect($subject);
-
-        $this->setExpectedException('InvalidArgumentException');
-        $this->assertFalse($_subject->_hasData($key), 'Test subject initial state is wrong');
     }
 }
