@@ -26,8 +26,8 @@ trait GetDataCapableTrait
      */
     protected function _getData($key = null)
     {
-        if (!is_null($key) && !is_string($key) && !($key instanceof Stringable)) {
-            throw $this->_createInvalidArgumentException($this->__('Data key must be stringable'), null, null, $key);
+        if (!is_null($key)) {
+            $key = $this->_normalizeString($key);
         }
 
         $store = $this->_getDataStore();
@@ -37,7 +37,6 @@ trait GetDataCapableTrait
             return (array) $store;
         }
 
-        $key = (string) $key;
         if (!property_exists($store, $key)) {
             throw $this->_createNotFoundException($this->__('Data key not found'), $key);
         }
@@ -68,25 +67,6 @@ trait GetDataCapableTrait
     abstract protected function _createNotFoundException($message = null, $dataKey = null, RootException $previous = null);
 
     /**
-     * Creates a new invalid argument exception.
-     *
-     * @since [*next-version*]
-     *
-     * @param string|Stringable|null $message  The error message, if any.
-     * @param int|null               $code     The error code, if any.
-     * @param RootException|null     $previous The inner exception for chaining, if any.
-     * @param mixed|null             $argument The invalid argument, if any.
-     *
-     * @return InvalidArgumentException The new exception.
-     */
-    abstract protected function _createInvalidArgumentException(
-            $message = null,
-            $code = null,
-            RootException $previous = null,
-            $argument = null
-    );
-
-    /**
      * Translates a string, and replaces placeholders.
      *
      * @since [*next-version*]
@@ -99,4 +79,20 @@ trait GetDataCapableTrait
      * @return string The translated string.
      */
     abstract protected function __($string, $args = [], $context = null);
+
+    /**
+     * Normalizes a value to its string representation.
+     *
+     * The values that can be normalized are any scalar values, as well as
+     * {@see StringableInterface).
+     *
+     * @since [*next-version*]
+     *
+     * @param Stringable|string|int|float|bool $subject The value to normalize to string.
+     *
+     * @throws InvalidArgumentException If the value cannot be normalized.
+     *
+     * @return string The string that resulted from normalization.
+     */
+    abstract protected function _normalizeString($subject);
 }
