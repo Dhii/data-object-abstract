@@ -4,7 +4,7 @@ namespace Dhii\Data\Object\UnitTest;
 
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
-use Psr\Container\NotFoundExceptionInterfaces;
+use Psr\Container\NotFoundExceptionInterface;
 use InvalidArgumentException;
 use Dhii\Util\String\StringableInterface as Stringable;
 
@@ -89,7 +89,7 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @param string $message The error message.
      *
-     * @return NotFoundExceptionInterfaces The new exception.
+     * @return NotFoundExceptionInterface The new exception.
      */
     public function createNotFoundException($message = '')
     {
