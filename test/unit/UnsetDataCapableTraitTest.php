@@ -74,6 +74,33 @@ class UnsetDataCapableTraitTest extends TestCase
     }
 
     /**
+     * Creates a mock that both extends a class and implements interfaces.
+     *
+     * This is particularly useful for cases where the mock is based on an
+     * internal class, such as in the case with exceptions. Helps to avoid
+     * writing hard-coded stubs.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $className      Name of the class for the mock to extend.
+     * @param string $interfaceNames Names of the interfaces for the mock to implement.
+     *
+     * @return object The object that extends and implements the specified class and interfaces.
+     */
+    public function mockClassAndInterfaces($className, $interfaceNames = [])
+    {
+        $paddingClassName = uniqid($className);
+        $definition = vsprintf('abstract class %1$s extends %2$s implements %3$s {}', [
+            $paddingClassName,
+            $className,
+            implode(', ', $interfaceNames),
+        ]);
+        eval($definition);
+
+        return $this->getMockForAbstractClass($paddingClassName);
+    }
+
+    /**
      * Creates a new Invalid Argument exception.
      *
      * @since [*next-version*]
@@ -207,5 +234,33 @@ class UnsetDataCapableTraitTest extends TestCase
 
         $this->setExpectedException('InvalidArgumentException');
         $_subject->_unsetData($key);
+    }
+
+    /**
+     * Tests that the subject fails correctly when attempting to unset non-existing key.
+     *
+     * @since [*next-version*]
+     */
+    public function testUnsetDataFailureNotFound()
+    {
+        $key = uniqid('key');
+        $subject = $this->createInstance(['_throwNotFoundException']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+                ->method('_throwNotFoundException')
+                ->with(
+                    $this->isType('string'),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $key
+                )
+                ->will($this->returnCallback(function ($message) {
+                    throw $this->createNotFoundException($message);
+                }));
+
+        $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
+        $_subject->_unsetData([$key]);
     }
 }

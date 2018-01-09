@@ -33,6 +33,16 @@ trait UnsetDataCapableTrait
         foreach ($keys as $_idx => $_key) {
             $_key = $this->_normalizeString($_key);
 
+            if (!isset($store->{$_key})) {
+                $this->_throwNotFoundException(
+                    $this->__('Key not found'),
+                    null,
+                    null,
+                    null,
+                    $_key
+                );
+            }
+
             unset($store->{$_key});
         }
     }
@@ -47,7 +57,7 @@ trait UnsetDataCapableTrait
     abstract protected function _getDataStore();
 
     /**
-     * Creates a new not found exception.
+     * Throws a Not Found exception.
      *
      * @param string|Stringable|null     $message   The exception message, if any.
      * @param int|string|Stringable|null $code      The numeric exception code, if any.
@@ -57,9 +67,9 @@ trait UnsetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return NotFoundExceptionInterface The new exception.
+     * @throws NotFoundExceptionInterface
      */
-    abstract protected function _createNotFoundException(
+    abstract protected function _throwNotFoundException(
         $message = null,
         $code = null,
         RootException $previous = null,

@@ -37,7 +37,7 @@ class GetDataCapableTraitTest extends TestCase
             '_normalizeString',
             '_createNotFoundException',
             '_createInvalidArgumentException',
-            '_normalizeString'
+            '_normalizeString',
         ]);
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
             ->setMethods($methods)
@@ -67,6 +67,8 @@ class GetDataCapableTraitTest extends TestCase
      * Merges the values of two arrays.
      *
      * The resulting product will be a numeric array where the values of both inputs are present, without duplicates.
+     *
+     * @since [*next-version*]
      *
      * @param array $destination The base array.
      * @param array $source      The array with more keys.
@@ -118,7 +120,7 @@ class GetDataCapableTraitTest extends TestCase
     {
         $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface']);
         $mock->method('getMessage')
-                ->will($this->returnValue($message));
+            ->will($this->returnValue($message));
 
         return $mock;
     }
@@ -239,9 +241,21 @@ class GetDataCapableTraitTest extends TestCase
         $data = (object) [
             $key => $value,
         ];
-        $subject = $this->createInstance();
+        $subject = $this->createInstance(['_throwNotFoundException']);
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(1))
+            ->method('_throwNotFoundException')
+            ->with(
+                $this->isType('string'),
+                $this->isNull(),
+                $this->isNull(),
+                $this->isNull(),
+                $key2
+            )
+            ->will($this->returnCallback(function ($message) {
+                throw $this->createNotFoundException($message);
+            }));
         $subject->method('_getDataStore')
             ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
