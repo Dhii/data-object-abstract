@@ -5,6 +5,7 @@ namespace Dhii\Data\Object\UnitTest;
 use Xpmock\TestCase;
 use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
 use Dhii\Util\String\StringableInterface as Stringable;
+use InvalidArgumentException;
 
 /**
  * Tests {@see TestSubject}.
