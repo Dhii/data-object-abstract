@@ -2,6 +2,7 @@
 
 namespace Dhii\Data\Object;
 
+use Psr\Container\ContainerInterface;
 use Traversable;
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
@@ -32,6 +33,16 @@ trait UnsetDataCapableTrait
         foreach ($keys as $_idx => $_key) {
             $_key = $this->_normalizeString($_key);
 
+            if (!isset($store->{$_key})) {
+                $this->_throwNotFoundException(
+                    $this->__('Key not found'),
+                    null,
+                    null,
+                    null,
+                    $_key
+                );
+            }
+
             unset($store->{$_key});
         }
     }
@@ -46,17 +57,25 @@ trait UnsetDataCapableTrait
     abstract protected function _getDataStore();
 
     /**
-     * Creates a new not found exception.
+     * Throws a Not Found exception.
      *
-     * @param string|Stringable|null $message  The message for the exception, if any.
-     * @param string|Stringable|null $dataKey  The data key, if any.
-     * @param RootException|null     $previous The inner exception, if any.
+     * @param string|Stringable|null     $message   The exception message, if any.
+     * @param int|string|Stringable|null $code      The numeric exception code, if any.
+     * @param RootException|null         $previous  The inner exception, if any.
+     * @param ContainerInterface|null    $container The associated container, if any.
+     * @param string|Stringable|null     $dataKey   The missing data key, if any.
      *
      * @since [*next-version*]
      *
-     * @return NotFoundExceptionInterface The new exception.
+     * @throws NotFoundExceptionInterface
      */
-    abstract protected function _createNotFoundException($message = null, $dataKey = null, RootException $previous = null);
+    abstract protected function _throwNotFoundException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        ContainerInterface $container = null,
+        $dataKey = null
+    );
 
     /**
      * Creates a new invalid argument exception.

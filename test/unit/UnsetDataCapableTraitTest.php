@@ -2,9 +2,11 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use Psr\Container\NotFoundExceptionInterface;
 use Xpmock\TestCase;
 use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
 use Dhii\Util\String\StringableInterface as Stringable;
+use InvalidArgumentException;
 
 /**
  * Tests {@see TestSubject}.
@@ -27,16 +29,17 @@ class UnsetDataCapableTraitTest extends TestCase
      *
      * @return object
      */
-    public function createInstance($data = null)
+    public function createInstance($methods = [])
     {
-        $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
-            '_getDataStore',
+        $methods = $this->mergeValues($methods, [
             '__',
             '_normalizeString',
         ]);
 
-        $mock->method('_getDataStore')
-                ->will($this->returnValue($data));
+        $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
+                ->setMethods($methods)
+                ->getMockForTrait();
+
         $mock->method('_createInvalidArgumentException')
                 ->will($this->returnCallback(function ($message) {
                     return $this->createInvalidArgumentException($message);
@@ -45,8 +48,56 @@ class UnsetDataCapableTraitTest extends TestCase
                 ->will($this->returnCallback(function ($string) {
                     return (string) $string;
                 }));
+        $mock->method('__')
+                ->will($this->returnCallback(function ($string) {
+                    return $string;
+                }));
 
         return $mock;
+    }
+
+    /**
+     * Merges the values of two arrays.
+     *
+     * The resulting product will be a numeric array where the values of both inputs are present, without duplicates.
+     *
+     * @since [*next-version*]
+     *
+     * @param array $destination The base array.
+     * @param array $source      The array with more keys.
+     *
+     * @return array The array which contains unique values
+     */
+    public function mergeValues($destination, $source)
+    {
+        return array_keys(array_merge(array_flip($destination), array_flip($source)));
+    }
+
+    /**
+     * Creates a mock that both extends a class and implements interfaces.
+     *
+     * This is particularly useful for cases where the mock is based on an
+     * internal class, such as in the case with exceptions. Helps to avoid
+     * writing hard-coded stubs.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $className      Name of the class for the mock to extend.
+     * @param string $interfaceNames Names of the interfaces for the mock to implement.
+     *
+     * @return object The object that extends and implements the specified class and interfaces.
+     */
+    public function mockClassAndInterfaces($className, $interfaceNames = [])
+    {
+        $paddingClassName = uniqid($className);
+        $definition = vsprintf('abstract class %1$s extends %2$s implements %3$s {}', [
+            $paddingClassName,
+            $className,
+            implode(', ', $interfaceNames),
+        ]);
+        eval($definition);
+
+        return $this->getMockForAbstractClass($paddingClassName);
     }
 
     /**
@@ -62,6 +113,24 @@ class UnsetDataCapableTraitTest extends TestCase
     {
         $mock = $this->getMock('InvalidArgumentException');
 
+        $mock->method('getMessage')
+                ->will($this->returnValue($message));
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new Not Found exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return NotFoundExceptionInterface The new exception.
+     */
+    public function createNotFoundException($message = '')
+    {
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface']);
         $mock->method('getMessage')
                 ->will($this->returnValue($message));
 
@@ -111,11 +180,13 @@ class UnsetDataCapableTraitTest extends TestCase
             $key1 => uniqid('val1-'),
             'age' => 29,
         ];
-        $subject = $this->createInstance($data);
+        $subject = $this->createInstance(['_getDataStore']);
         $_subject = $this->reflect($subject);
 
         $this->assertObjectHasAttribute($key1, $data, 'Test data initial state is wrong');
 
+        $subject->method('_getDataStore')
+                ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
                 ->method('_normalizeString')
                 ->with($this->equalTo($key1));
@@ -137,9 +208,11 @@ class UnsetDataCapableTraitTest extends TestCase
         $data = (object) [
             $key => $value,
         ];
-        $subject = $this->createInstance($data);
+        $subject = $this->createInstance(['_getDataStore']);
         $_subject = $this->reflect($subject);
 
+        $subject->method('_getDataStore')
+                ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
                 ->method('_normalizeString')
                 ->with($this->equalTo($stringable));
@@ -156,10 +229,38 @@ class UnsetDataCapableTraitTest extends TestCase
     public function testUnsetDataInvalidKeyListFailure()
     {
         $key = uniqid('key-');
-        $subject = $this->createInstance([]);
+        $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
 
         $this->setExpectedException('InvalidArgumentException');
         $_subject->_unsetData($key);
+    }
+
+    /**
+     * Tests that the subject fails correctly when attempting to unset non-existing key.
+     *
+     * @since [*next-version*]
+     */
+    public function testUnsetDataFailureNotFound()
+    {
+        $key = uniqid('key');
+        $subject = $this->createInstance(['_throwNotFoundException']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+                ->method('_throwNotFoundException')
+                ->with(
+                    $this->isType('string'),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $key
+                )
+                ->will($this->returnCallback(function ($message) {
+                    throw $this->createNotFoundException($message);
+                }));
+
+        $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
+        $_subject->_unsetData([$key]);
     }
 }
