@@ -2,6 +2,8 @@
 
 namespace Dhii\Data\Object;
 
+use ArrayObject;
+
 /**
  * Functionality for retrieval of the data store.
  *
@@ -14,7 +16,7 @@ trait GetDataStoreCapableTrait
      *
      * @since [*next-version*]
      *
-     * @var object
+     * @var ArrayObject|null
      */
     protected $dataStore;
 
@@ -23,12 +25,12 @@ trait GetDataStoreCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayObject The data store.
      */
     protected function _getDataStore()
     {
         return $this->dataStore === null
-                ? $this->dataStore = new \stdClass()
+                ? $this->dataStore = new ArrayObject()
                 : $this->dataStore;
     }
 }
