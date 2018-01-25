@@ -3,10 +3,10 @@
 namespace Dhii\Data\Object\UnitTest;
 
 use ArrayObject;
+use InvalidArgumentException;
 use Xpmock\TestCase;
 use Dhii\Data\Object\HasDataCapableTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
-use Dhii\Util\String\StringableInterface as Stringable;
 
 /**
  * Tests {@see TestSubject}.
