@@ -2,8 +2,10 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 use Psr\Container\NotFoundExceptionInterface;
 use InvalidArgumentException;
 use Dhii\Util\String\StringableInterface as Stringable;
@@ -27,7 +29,7 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      *
-     * @return object
+     * @return MockObject
      */
     public function createInstance($methods = [])
     {
@@ -178,56 +180,61 @@ class GetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that the reference to a data store is returned correctly.
+     * Creates a new store mock.
+     *
+     * @since [*next-version*]
+     *
+     * @return ArrayObject|MockObject The new store mock.
+     */
+    public function createStore($data = [], $methods = [])
+    {
+        $methods = $this->mergeValues($methods, [
+        ]);
+
+        $mock = $this->getMockBuilder('ArrayObject')
+                ->setMethods($methods)
+                ->getMock();
+
+        return $mock;
+    }
+
+    /**
+     * Tests that data gets retrieved correctly.
      *
      * @since [*next-version*]
      */
     public function testGetData()
     {
-        $key1 = 'name';
-        $val2 = uniqid('val2-');
-        $data = (object) [
-            $key1 => 'Anton',
-            'age' => 29,
+        $key = uniqid('name');
+        $val = uniqid('val2-');
+        $data = [
+            $key => $val,
         ];
+        $store = $this->createStore($data, [
+            'offsetExists',
+            'offsetGet',
+        ]);
         $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
 
-        $subject->method('_getDataStore')
-            ->will($this->returnValue($data));
+        $store->expects($this->exactly(1))
+                ->method('offsetExists')
+                ->with($key)
+                ->will($this->returnValue(true));
+        $store->expects($this->exactly(1))
+            ->method('offsetGet')
+            ->with($key)
+            ->will($this->returnValue($val));
+
+        $subject->expects($this->exactly(1))
+                ->method('_getDataStore')
+                ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
                 ->method('_normalizeKey')
-                ->with($this->equalTo($key1));
+                ->with($this->equalTo($key))
+                ->will($this->returnValue($key));
 
-        $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
-        $data->{$key1} = $val2;
-
-        $this->assertEquals($val2, $_subject->_getData($key1), 'Data member could not be correctly retrieved');
-    }
-
-    /**
-     * Tests that data retrieval works correctly when using a stringable object key.
-     *
-     * @since [*next-version*]
-     */
-    public function testGetDataStringable()
-    {
-        $key = uniqid('key-');
-        $value = uniqid('value-');
-        $stringable = $this->createStringable($key);
-        $data = (object) [
-            $key => $value,
-        ];
-        $subject = $this->createInstance();
-        $_subject = $this->reflect($subject);
-
-        $subject->method('_getDataStore')
-            ->will($this->returnValue($data));
-        $subject->expects($this->exactly(1))
-                ->method('_normalizeKey')
-                ->with($this->equalTo($stringable));
-
-        $this->assertEquals($value, $_subject->_getData($stringable), 'Data member could not be correctly retrieved');
+        $this->assertEquals($val, $_subject->_getData($key), 'Data member could not be correctly retrieved');
     }
 
     /**
@@ -237,34 +244,35 @@ class GetDataCapableTraitTest extends TestCase
      */
     public function testGetDataNotFoundFailure()
     {
-        $key = uniqid('key-');
-        $value = uniqid('value-');
-        $key2 = uniqid('key2-');
-        $data = (object) [
-            $key => $value,
-        ];
+        $key = uniqid('key');
+        $store = $this->createStore();
+        $exception = $this->createNotFoundException('Key not found');
         $subject = $this->createInstance(['_throwNotFoundException']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-            ->method('_throwNotFoundException')
-            ->with(
-                $this->isType('string'),
-                $this->isNull(),
-                $this->isNull(),
-                $this->isNull(),
-                $key2
-            )
-            ->will($this->returnCallback(function ($message) {
-                throw $this->createNotFoundException($message);
-            }));
+                ->method('_throwNotFoundException')
+                ->with(
+                    $this->isType('string'),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $this->isNull(),
+                    $key
+                )
+                ->will($this->throwException($exception));
         $subject->method('_getDataStore')
-            ->will($this->returnValue($data));
+                ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
                 ->method('_normalizeKey')
-                ->with($this->equalTo($key2));
+                ->with($this->equalTo($key))
+                ->will($this->returnValue($key));
+
+        $store->expects($this->exactly(1))
+                ->method('offsetExists')
+                ->with($key)
+                ->will($this->returnValue(false));
 
         $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
-        $_subject->_getData($key2);
+        $_subject->_getData($key);
     }
 }
