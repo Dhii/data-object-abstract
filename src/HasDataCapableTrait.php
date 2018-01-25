@@ -24,7 +24,7 @@ trait HasDataCapableTrait
     protected function _hasData($key)
     {
         if (!is_null($key)) {
-            $key = $this->_normalizeString($key);
+            $key = $this->_normalizeKey($key);
         }
 
         $store = $this->_getDataStore();
@@ -57,18 +57,18 @@ trait HasDataCapableTrait
     abstract protected function __($string, $args = [], $context = null);
 
     /**
-     * Normalizes a value to its string representation.
+     * Normalizes an array key.
      *
-     * The values that can be normalized are any scalar values, as well as
-     * {@see StringableInterface).
+     * If key is not an integer (strict type check), it will be normalized to string.
+     * Otherwise it is left as is.
      *
      * @since [*next-version*]
      *
-     * @param Stringable|string|int|float|bool $subject The value to normalize to string.
+     * @param string|int|float|bool|Stringable $key The key to normalize.
      *
      * @throws InvalidArgumentException If the value cannot be normalized.
      *
-     * @return string The string that resulted from normalization.
+     * @return string|int The normalized key.
      */
-    abstract protected function _normalizeString($subject);
+    abstract protected function _normalizeKey($key);
 }

@@ -51,10 +51,12 @@ class GetDataCapableTraitTest extends TestCase
                 ->will($this->returnCallback(function ($message) {
                     return $this->createInvalidArgumentException($message);
                 }));
-        $mock->method('_normalizeString')
-            ->will($this->returnCallback(function ($string) {
-                return (string) $string;
-            }));
+        $mock->method('_normalizeKey')
+                ->will($this->returnCallback(function ($key) {
+                    return is_int($key)
+                            ? $key
+                            : (string) $key;
+                }));
         $mock->method('_throwNotFoundException')
             ->will($this->returnCallback(function ($string) {
                 return (string) $string;
@@ -194,7 +196,7 @@ class GetDataCapableTraitTest extends TestCase
         $subject->method('_getDataStore')
             ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
+                ->method('_normalizeKey')
                 ->with($this->equalTo($key1));
 
         $this->assertEquals((array) $data, $_subject->_getData(), 'The state of the whole data map is wrong', 0.0, 10, true);
@@ -222,7 +224,7 @@ class GetDataCapableTraitTest extends TestCase
         $subject->method('_getDataStore')
             ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
+                ->method('_normalizeKey')
                 ->with($this->equalTo($stringable));
 
         $this->assertEquals($value, $_subject->_getData($stringable), 'Data member could not be correctly retrieved');
@@ -259,7 +261,7 @@ class GetDataCapableTraitTest extends TestCase
         $subject->method('_getDataStore')
             ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
+                ->method('_normalizeKey')
                 ->with($this->equalTo($key2));
 
         $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');

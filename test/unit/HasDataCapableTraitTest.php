@@ -45,6 +45,12 @@ class HasDataCapableTraitTest extends TestCase
                 ->will($this->returnCallback(function ($string) {
                     return (string) $string;
                 }));
+        $mock->method('_normalizeKey')
+                ->will($this->returnCallback(function ($key) {
+                    return is_int($key)
+                        ? $key
+                        : (string) $key;
+                }));
 
         return $mock;
     }
@@ -116,7 +122,7 @@ class HasDataCapableTraitTest extends TestCase
         $this->assertFalse($_subject->_hasData($key1), 'Test subject initial state is wrong');
 
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
+                ->method('_normalizeKey')
                 ->with($this->equalTo($key1));
 
         $data->{$key1} = uniqid('val1-');
@@ -141,7 +147,7 @@ class HasDataCapableTraitTest extends TestCase
         $this->assertFalse($_subject->_hasData($stringable), 'Test subject initial state is wrong');
 
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
+                ->method('_normalizeKey')
                 ->with($this->equalTo($stringable));
 
         $data->{$key} = uniqid('val1-');
