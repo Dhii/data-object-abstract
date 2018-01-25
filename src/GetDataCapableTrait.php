@@ -7,6 +7,7 @@ use Exception as RootException;
 use InvalidArgumentException;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Container\ContainerInterface;
+use ArrayAccess;
 
 /**
  * Functionality for data retrieval.
@@ -20,29 +21,23 @@ trait GetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @param string|Stringable|null $key The key, for which to get the data,
-     *                                    or null to get all data as an array.
+     * @param string|int|float|bool|Stringable $key The key, for which to get the data.
+     *                                              Unless an integer is given, this will be normalized to string.
      *
-     * @return mixed|array The value for the specified key, or all data as an key-value map.
+     * @throws InvalidArgumentException If key is invalid.
+     *
+     * @return mixed The value for the specified key.
      */
-    protected function _getData($key = null)
+    protected function _getData($key)
     {
-        if (!is_null($key)) {
-            $key = $this->_normalizeKey($key);
-        }
-
+        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
 
-        // Return whole set
-        if (is_null($key)) {
-            return (array) $store;
+        if (!$store->offsetExists($key)) {
+            throw $this->_throwNotFoundException($this->__('Data key not found'), null, null, null, $key);
         }
 
-        if (!property_exists($store, $key)) {
-            $this->_throwNotFoundException($this->__('Data key not found'), null, null, null, $key);
-        }
-
-        return $store->{$key};
+        return $store->offsetGet($key);
     }
 
     /**
@@ -50,7 +45,7 @@ trait GetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayAccess The data store.
      */
     abstract protected function _getDataStore();
 
