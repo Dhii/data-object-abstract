@@ -2,8 +2,10 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
 use Xpmock\TestCase;
 use Dhii\Data\Object\HasDataCapableTrait as TestSubject;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 use Dhii\Util\String\StringableInterface as Stringable;
 
 /**
@@ -25,26 +27,16 @@ class HasDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      *
-     * @return object
+     * @return MockObject
      */
-    public function createInstance($data = null)
+    public function createInstance()
     {
         $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
             '_getDataStore',
             '__',
-            '_normalizeString',
+            '_normalizeKey',
         ]);
 
-        $mock->method('_getDataStore')
-                ->will($this->returnValue($data));
-        $mock->method('_createInvalidArgumentException')
-                ->will($this->returnCallback(function ($message) {
-                    return $this->createInvalidArgumentException($message);
-                }));
-        $mock->method('_normalizeString')
-                ->will($this->returnCallback(function ($string) {
-                    return (string) $string;
-                }));
         $mock->method('_normalizeKey')
                 ->will($this->returnCallback(function ($key) {
                     return is_int($key)
@@ -53,6 +45,23 @@ class HasDataCapableTraitTest extends TestCase
                 }));
 
         return $mock;
+    }
+
+    /**
+     * Merges the values of two arrays.
+     *
+     * The resulting product will be a numeric array where the values of both inputs are present, without duplicates.
+     *
+     * @since [*next-version*]
+     *
+     * @param array $destination The base array.
+     * @param array $source      The array with more keys.
+     *
+     * @return array The array which contains unique values
+     */
+    public function mergeValues($destination, $source)
+    {
+        return array_keys(array_merge(array_flip($destination), array_flip($source)));
     }
 
     /**
@@ -75,20 +84,20 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Creates a new stringable object.
+     * Creates a new store mock.
      *
      * @since [*next-version*]
      *
-     * @param string $string The string that the object will represent.
-     *
-     * @return Stringable The new stringable.
+     * @return ArrayObject|MockObject The new store mock.
      */
-    public function createStringable($string)
+    public function createStore($data = [], $methods = [])
     {
-        $mock = $this->getMock('Dhii\Util\String\StringableInterface');
+        $methods = $this->mergeValues($methods, [
+        ]);
 
-        $mock->method('__toString')
-                ->will($this->returnValue($string));
+        $mock = $this->getMockBuilder('ArrayObject')
+            ->setMethods($methods)
+            ->getMock($data);
 
         return $mock;
     }
@@ -106,51 +115,58 @@ class HasDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that checking for data existence works correctly.
+     * Tests that checking for data existence works correctly when data exists.
      *
      * @since [*next-version*]
      */
-    public function testHasData()
+    public function testHasDataTrue()
     {
-        $key1 = 'name';
-        $data = (object) [
-            'age' => 29,
-        ];
-        $subject = $this->createInstance($data);
+        $key = uniqid('key');
+        $isExists = true;
+        $store = $this->createStore([], ['offsetExists']);
+        $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
-
-        $this->assertFalse($_subject->_hasData($key1), 'Test subject initial state is wrong');
 
         $subject->expects($this->exactly(1))
                 ->method('_normalizeKey')
-                ->with($this->equalTo($key1));
+                ->with($this->equalTo($key));
+        $subject->expects($this->exactly(1))
+                ->method('_getDataStore')
+                ->will($this->returnValue($store));
 
-        $data->{$key1} = uniqid('val1-');
-        $this->assertTrue($_subject->_hasData($key1), 'Test subject altered state is wrong');
+        $store->expects($this->exactly(1))
+                ->method('offsetExists')
+                ->with($key)
+                ->will($this->returnValue($isExists));
+
+        $this->assertEquals($isExists, $_subject->_hasData($key), 'Test subject did not determine that it has the specified data key');
     }
 
     /**
-     * Tests that checking for data existence works correctly when using a stringable object as key.
+     * Tests that checking for data existence works correctly when data doesn't exist.
      *
      * @since [*next-version*]
      */
-    public function testHasDataStringable()
+    public function testHasDataFalse()
     {
-        $key = 'name';
-        $stringable = $this->createStringable($key);
-        $data = (object) [
-            'age' => 29,
-        ];
-        $subject = $this->createInstance($data);
+        $key = uniqid('key');
+        $isExists = false;
+        $store = $this->createStore([], ['offsetExists']);
+        $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
 
-        $this->assertFalse($_subject->_hasData($stringable), 'Test subject initial state is wrong');
-
         $subject->expects($this->exactly(1))
-                ->method('_normalizeKey')
-                ->with($this->equalTo($stringable));
+            ->method('_normalizeKey')
+            ->with($this->equalTo($key));
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
 
-        $data->{$key} = uniqid('val1-');
-        $this->assertTrue($_subject->_hasData($stringable), 'Test subject altered state is wrong');
+        $store->expects($this->exactly(1))
+            ->method('offsetExists')
+            ->with($key)
+            ->will($this->returnValue($isExists));
+
+        $this->assertEquals($isExists, $_subject->_hasData($key), 'Test subject did not determine that it does not have the specified data key');
     }
 }
