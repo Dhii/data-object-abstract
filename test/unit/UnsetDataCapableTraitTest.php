@@ -2,11 +2,13 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
+use OutOfBoundsException;
 use Psr\Container\NotFoundExceptionInterface;
 use Xpmock\TestCase;
 use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 use Dhii\Util\String\StringableInterface as Stringable;
-use InvalidArgumentException;
 
 /**
  * Tests {@see TestSubject}.
@@ -34,19 +36,22 @@ class UnsetDataCapableTraitTest extends TestCase
         $methods = $this->mergeValues($methods, [
             '__',
             '_normalizeString',
+            '_createOutOfBoundsException'
         ]);
 
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
                 ->setMethods($methods)
                 ->getMockForTrait();
 
-        $mock->method('_createInvalidArgumentException')
+        $mock->method('_createOutOfBoundsException')
                 ->will($this->returnCallback(function ($message) {
-                    return $this->createInvalidArgumentException($message);
+                    return $this->createOutOfBoundsException($message);
                 }));
-        $mock->method('_normalizeString')
-                ->will($this->returnCallback(function ($string) {
-                    return (string) $string;
+        $mock->method('_normalizeKey')
+                ->will($this->returnCallback(function ($key) {
+                    return is_int($key)
+                            ? $key
+                            : (string) $key;
                 }));
         $mock->method('__')
                 ->will($this->returnCallback(function ($string) {
@@ -107,11 +112,11 @@ class UnsetDataCapableTraitTest extends TestCase
      *
      * @param string $message The error message.
      *
-     * @return InvalidArgumentException The new exception.
+     * @return OutOfBoundsException The new exception.
      */
-    public function createInvalidArgumentException($message = '')
+    public function createOutOfBoundsException($message = '')
     {
-        $mock = $this->getMock('InvalidArgumentException');
+        $mock = $this->getMock('OutOfBoundsException');
 
         $mock->method('getMessage')
                 ->will($this->returnValue($message));
@@ -157,6 +162,25 @@ class UnsetDataCapableTraitTest extends TestCase
     }
 
     /**
+     * Creates a new store mock.
+     *
+     * @since [*next-version*]
+     *
+     * @return ArrayObject|MockObject The new store mock.
+     */
+    public function createStore($data = [], $methods = [])
+    {
+        $methods = $this->mergeValues($methods, [
+        ]);
+
+        $mock = $this->getMockBuilder('ArrayObject')
+            ->setMethods($methods)
+            ->getMock($data);
+
+        return $mock;
+    }
+
+    /**
      * Tests whether a valid instance of the test subject can be created.
      *
      * @since [*next-version*]
@@ -169,98 +193,61 @@ class UnsetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that unsetting data is done correctly.
+     * Tests that the `_unsetData()` methods works as expected.
      *
      * @since [*next-version*]
      */
     public function testUnsetData()
     {
-        $key1 = 'name';
-        $data = (object) [
-            $key1 => uniqid('val1-'),
-            'age' => 29,
-        ];
+        $key = uniqid('key');
+        $store = $this->createStore([], ['offsetExists', 'offsetUnset']);
+        $exception = $this->createOutOfBoundsException();
         $subject = $this->createInstance(['_getDataStore']);
         $_subject = $this->reflect($subject);
 
-        $this->assertObjectHasAttribute($key1, $data, 'Test data initial state is wrong');
-
-        $subject->method('_getDataStore')
-                ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
-                ->with($this->equalTo($key1));
-
-        $_subject->_unsetData([$key1]);
-        $this->assertObjectNotHasAttribute($key1, $data, 'Test data altered state is wrong');
-    }
-
-    /**
-     * Tests that unsetting data is done correctly when using a stringable object as key.
-     *
-     * @since [*next-version*]
-     */
-    public function testUnsetDataStringable()
-    {
-        $key = uniqid('key-');
-        $value = uniqid('value-');
-        $stringable = $this->createStringable($key);
-        $data = (object) [
-            $key => $value,
-        ];
-        $subject = $this->createInstance(['_getDataStore']);
-        $_subject = $this->reflect($subject);
-
-        $subject->method('_getDataStore')
-                ->will($this->returnValue($data));
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
-                ->method('_normalizeString')
-                ->with($this->equalTo($stringable));
+            ->method('_normalizeKey')
+            ->with($this->equalTo($key));
 
-        $_subject->_unsetData([$stringable]);
-        $this->assertObjectNotHasAttribute($key, $data, 'Test data altered state is wrong');
-    }
+        $store->expects($this->exactly(1))
+            ->method('offsetExists')
+            ->with($key)
+            ->will($this->returnValue(true));
+        $store->expects($this->exactly(1))
+            ->method('offsetUnset')
+            ->with($key);
 
-    /**
-     * Tests that unsetting data fails correctly when given invalid key list.
-     *
-     * @since [*next-version*]
-     */
-    public function testUnsetDataInvalidKeyListFailure()
-    {
-        $key = uniqid('key-');
-        $subject = $this->createInstance();
-        $_subject = $this->reflect($subject);
-
-        $this->setExpectedException('InvalidArgumentException');
         $_subject->_unsetData($key);
     }
 
     /**
-     * Tests that the subject fails correctly when attempting to unset non-existing key.
+     * Tests that the `_unsetData()` methods fails as expected when the specified key does not exist.
      *
      * @since [*next-version*]
      */
-    public function testUnsetDataFailureNotFound()
+    public function testUnsetDataFailure()
     {
         $key = uniqid('key');
-        $subject = $this->createInstance(['_throwNotFoundException']);
+        $store = $this->createStore([], ['offsetExists']);
+        $subject = $this->createInstance(['_getDataStore']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-                ->method('_throwNotFoundException')
-                ->with(
-                    $this->isType('string'),
-                    $this->isNull(),
-                    $this->isNull(),
-                    $this->isNull(),
-                    $key
-                )
-                ->will($this->returnCallback(function ($message) {
-                    throw $this->createNotFoundException($message);
-                }));
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_normalizeKey')
+            ->with($this->equalTo($key));
 
-        $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
-        $_subject->_unsetData([$key]);
+        $store->expects($this->exactly(1))
+            ->method('offsetExists')
+            ->with($key)
+            ->will($this->returnValue(false));
+
+        $this->setExpectedException('OutOfBoundsException');
+        $_subject->_unsetData($key);
     }
 }
