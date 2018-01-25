@@ -2,6 +2,7 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataStoreCapableTrait as TestSubject;
 
@@ -28,7 +29,8 @@ class GetDataStoreCapableTraitTest extends TestCase
      */
     public function createInstance()
     {
-        $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME);
+        $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
+                ->getMockForTrait();
 
         return $mock;
     }
@@ -52,19 +54,17 @@ class GetDataStoreCapableTraitTest extends TestCase
      */
     public function testGetDataStore()
     {
-        $data = new \stdClass();
-        $subject = $this->createInstance($data);
+        $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
         $key1 = uniqid('key1-');
         $val1 = uniqid('val1-');
 
-        $result = $_subject->_getDataStore();
-        $this->assertEquals($data, $result, 'Initial data state was not an empty array');
+        $store = $_subject->_getDataStore();
+        $this->assertInstanceOf('ArrayObject', $store, 'Initial data state was incorrect');
 
-        $_subject->dataStore = $data;
-        $data->{$key1} = $val1;
-        $newData = $_subject->_getDataStore();
-        $this->assertObjectHasAttribute($key1, $newData, 'Internal storage does not reflect new state');
-        $this->assertEquals($val1, $newData->{$key1}, 'Internal storage does not reflect new state');
+        $store->offsetSet($key1, $val1);
+        $store = $_subject->_getDataStore();
+        $this->assertTrue($store->offsetExists($key1), 'Internal storage does not reflect new state');
+        $this->assertEquals($val1, $store->offsetGet($key1), 'Internal storage does not reflect new state');
     }
 }
