@@ -2,8 +2,11 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
+use InvalidArgumentException;
 use Xpmock\TestCase;
 use Dhii\Data\Object\SetDataCapableTrait as TestSubject;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
  * Tests {@see TestSubject}.
@@ -24,23 +27,34 @@ class SetDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      *
-     * @return object
+     * @return MockObject
      */
-    public function createInstance(&$data = [])
+    public function createInstance($methods = [])
     {
-        $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
-            '_getDataStore',
-            '__',
+        $methods = $this->mergeValues($methods, [
         ]);
-
-        $mock->method('_getDataStore')
-                ->will($this->returnValue($data));
-        $mock->method('_createInvalidArgumentException')
-                ->will($this->returnCallback(function ($message) {
-                    return $this->createInvalidArgumentException($message);
-                }));
+        $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
+                ->setMethods($methods)
+                ->getMockForTrait();
 
         return $mock;
+    }
+
+    /**
+     * Merges the values of two arrays.
+     *
+     * The resulting product will be a numeric array where the values of both inputs are present, without duplicates.
+     *
+     * @since [*next-version*]
+     *
+     * @param array $destination The base array.
+     * @param array $source      The array with more keys.
+     *
+     * @return array The array which contains unique values
+     */
+    public function mergeValues($destination, $source)
+    {
+        return array_keys(array_merge(array_flip($destination), array_flip($source)));
     }
 
     /**
@@ -63,6 +77,25 @@ class SetDataCapableTraitTest extends TestCase
     }
 
     /**
+     * Creates a new store mock.
+     *
+     * @since [*next-version*]
+     *
+     * @return ArrayObject|MockObject The new store mock.
+     */
+    public function createStore($data = [], $methods = [])
+    {
+        $methods = $this->mergeValues($methods, [
+        ]);
+
+        $mock = $this->getMockBuilder('ArrayObject')
+            ->setMethods($methods)
+            ->getMock();
+
+        return $mock;
+    }
+
+    /**
      * Tests whether a valid instance of the test subject can be created.
      *
      * @since [*next-version*]
@@ -75,39 +108,30 @@ class SetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that data can be set correctly.
+     * Tests that `_setData()` works as expected.
      *
      * @since [*next-version*]
      */
     public function testSetData()
     {
-        $key1 = 'name';
-        $val1 = uniqid('val1-');
-        $val2 = uniqid('val2-');
-        $data = (object) [
-            $key1 => $val1,
-            'age' => 29,
-        ];
-        $subject = $this->createInstance($data);
+        $key = uniqid('key');
+        $val = uniqid('val');
+        $store = $this->createStore([], ['offsetSet']);
+        $subject = $this->createInstance(['_normalizeKey', '_getDataStore']);
         $_subject = $this->reflect($subject);
 
-        $this->assertEquals($val1, $data->{$key1}, 'The initial state of the data member is wrong');
-        $_subject->_setData([$key1 => $val2]);
-        $this->assertEquals($val2, $data->{$key1}, 'The new state of the data member is wrong');
-    }
+        $subject->expects($this->exactly(1))
+                ->method('_normalizeKey')
+                ->with($key)
+                ->will($this->returnValue($key));
+        $subject->expects($this->exactly(1))
+                ->method('_getDataStore')
+                ->will($this->returnValue($store));
 
-    /**
-     * Tests that using an invalid data map fails correctly.
-     *
-     * @since [*next-version*]
-     */
-    public function testSetDataInvalidMapFailure()
-    {
-        $data = new \stdClass();
-        $subject = $this->createInstance($data);
-        $_subject = $this->reflect($subject);
+        $store->expects($this->exactly(1))
+                ->method('offsetSet')
+                ->with($key, $val);
 
-        $this->setExpectedException('InvalidArgumentException');
-        $_subject->_setData($data);
+        $_subject->_setData($key, $val);
     }
 }
