@@ -47,13 +47,15 @@ trait UnsetManyCapableTrait
     }
 
     /**
-     * Retrieves a pointer to the data store.
+     * Unset data by key.
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @param string|int|float|bool|Stringable $key The key of data to unset.
+     *
+     * @throws OutOfBoundsException If the key does not exist.
      */
-    abstract protected function _getDataStore();
+    abstract protected function _unsetData($key);
 
     /**
      * Creates a new Out Of Range exception.
@@ -87,22 +89,6 @@ trait UnsetManyCapableTrait
      * @return string The translated string.
      */
     abstract protected function __($string, $args = [], $context = null);
-
-    /**
-     * Normalizes an array key.
-     *
-     * If key is not an integer (strict type check), it will be normalized to string.
-     * Otherwise it is left as is.
-     *
-     * @since [*next-version*]
-     *
-     * @param string|int|float|bool|Stringable $key The key to normalize.
-     *
-     * @throws InvalidArgumentException If the value cannot be normalized.
-     *
-     * @return string|int The normalized key.
-     */
-    abstract protected function _normalizeKey($key);
 
     /**
      * Normalizes an iterable.
