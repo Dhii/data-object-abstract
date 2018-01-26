@@ -36,7 +36,7 @@ class UnsetDataCapableTraitTest extends TestCase
         $methods = $this->mergeValues($methods, [
             '__',
             '_normalizeString',
-            '_createOutOfBoundsException'
+            '_createOutOfBoundsException',
         ]);
 
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)

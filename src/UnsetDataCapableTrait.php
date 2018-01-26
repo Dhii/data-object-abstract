@@ -4,11 +4,9 @@ namespace Dhii\Data\Object;
 
 use ArrayAccess;
 use OutOfBoundsException;
-use Psr\Container\ContainerInterface;
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
 use InvalidArgumentException;
-use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Functionality for data retrieval.
