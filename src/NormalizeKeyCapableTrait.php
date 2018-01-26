@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: xedin
- * Date: 1/25/2018
- * Time: 5:37 PM.
- */
 
 namespace Dhii\Data\Object;
 
