@@ -2,6 +2,10 @@
 
 namespace Dhii\Data\Object;
 
+use ArrayObject;
+use InvalidArgumentException;
+use stdClass;
+
 /**
  * Functionality for retrieval of the data store.
  *
@@ -14,7 +18,7 @@ trait GetDataStoreCapableTrait
      *
      * @since [*next-version*]
      *
-     * @var object
+     * @var ArrayObject|null
      */
     protected $dataStore;
 
@@ -23,12 +27,25 @@ trait GetDataStoreCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayObject The data store.
      */
     protected function _getDataStore()
     {
         return $this->dataStore === null
-                ? $this->dataStore = new \stdClass()
+                ? $this->dataStore = $this->_createDataStore()
                 : $this->dataStore;
     }
+
+    /**
+     * Creates a new data store.
+     *
+     * @since [*next-version*]
+     *
+     * @param stdClass|array|null $data The data for the store, if any.
+     *
+     * @throws InvalidArgumentException If the type of data for the store is invalid.
+     *
+     * @return ArrayObject The new data store.
+     */
+    abstract protected function _createDataStore($data = null);
 }

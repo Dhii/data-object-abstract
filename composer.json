@@ -30,6 +30,12 @@
             "Dhii\\Data\\Object\\": "src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Dhii\\Data\\Object\\UnitTest\\": "test/unit",
+            "Dhii\\Data\\Object\\FuncTest\\": "test/functional"
+        }
+    },
     "scripts": {
         "test": "phpunit",
         "csfix": "php-cs-fixer fix -vvv"

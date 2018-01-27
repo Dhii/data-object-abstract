@@ -2,6 +2,7 @@
 
 namespace Dhii\Data\Object;
 
+use ArrayAccess;
 use Dhii\Util\String\StringableInterface as Stringable;
 use InvalidArgumentException;
 
@@ -17,20 +18,19 @@ trait HasDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @param string|Stringable $key The key, for which to check the data.
+     * @param string|int|float|bool|Stringable $key The key, for which to check the data.
+     *                                              Unless an integer is given, this will be normalized to string.
+     *
+     * @throws InvalidArgumentException If key is invalid.
      *
      * @return bool True if data for the specified key exists; false otherwise.
      */
     protected function _hasData($key)
     {
-        if (!is_null($key)) {
-            $key = $this->_normalizeString($key);
-        }
-
+        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
-        $key   = (string) $key;
 
-        return property_exists($store, $key);
+        return $store->offsetExists($key);
     }
 
     /**
@@ -38,37 +38,23 @@ trait HasDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayAccess The data store.
      */
     abstract protected function _getDataStore();
 
     /**
-     * Translates a string, and replaces placeholders.
+     * Normalizes an array key.
      *
-     * @since [*next-version*]
-     * @see sprintf()
-     *
-     * @param string $string  The format string to translate.
-     * @param array  $args    Placeholder values to replace in the string.
-     * @param mixed  $context The context for translation.
-     *
-     * @return string The translated string.
-     */
-    abstract protected function __($string, $args = [], $context = null);
-
-    /**
-     * Normalizes a value to its string representation.
-     *
-     * The values that can be normalized are any scalar values, as well as
-     * {@see StringableInterface).
+     * If key is not an integer (strict type check), it will be normalized to string.
+     * Otherwise it is left as is.
      *
      * @since [*next-version*]
      *
-     * @param Stringable|string|int|float|bool $subject The value to normalize to string.
+     * @param string|int|float|bool|Stringable $key The key to normalize.
      *
      * @throws InvalidArgumentException If the value cannot be normalized.
      *
-     * @return string The string that resulted from normalization.
+     * @return string|int The normalized key.
      */
-    abstract protected function _normalizeString($subject);
+    abstract protected function _normalizeKey($key);
 }

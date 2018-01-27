@@ -2,12 +2,11 @@
 
 namespace Dhii\Data\Object;
 
-use Psr\Container\ContainerInterface;
-use Traversable;
+use ArrayAccess;
+use OutOfBoundsException;
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
 use InvalidArgumentException;
-use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Functionality for data retrieval.
@@ -17,34 +16,29 @@ use Psr\Container\NotFoundExceptionInterface;
 trait UnsetDataCapableTrait
 {
     /**
-     * Unset data by keys.
+     * Unset data by key.
      *
      * @since [*next-version*]
      *
-     * @param Stringable[]|Traversable $keys The keys of data to unset.
+     * @param string|int|float|bool|Stringable $key The key of data to unset.
+     *
+     * @throws OutOfBoundsException If the key does not exist.
      */
-    protected function _unsetData($keys)
+    protected function _unsetData($key)
     {
-        if (!is_array($keys) && !($keys instanceof Traversable)) {
-            throw $this->_createInvalidArgumentException($this->__('Keys must be iterable'), null, null, $keys);
-        }
-
+        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
-        foreach ($keys as $_idx => $_key) {
-            $_key = $this->_normalizeString($_key);
 
-            if (!isset($store->{$_key})) {
-                $this->_throwNotFoundException(
-                    $this->__('Key not found'),
-                    null,
-                    null,
-                    null,
-                    $_key
-                );
-            }
-
-            unset($store->{$_key});
+        if (!$store->offsetExists($key)) {
+            throw $this->_createOutOfBoundsException(
+                $this->__('Data key does not exist'),
+                null,
+                null,
+                $key
+            );
         }
+
+        $store->offsetUnset($key);
     }
 
     /**
@@ -52,33 +46,12 @@ trait UnsetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayAccess The data store.
      */
     abstract protected function _getDataStore();
 
     /**
-     * Throws a Not Found exception.
-     *
-     * @param string|Stringable|null     $message   The exception message, if any.
-     * @param int|string|Stringable|null $code      The numeric exception code, if any.
-     * @param RootException|null         $previous  The inner exception, if any.
-     * @param ContainerInterface|null    $container The associated container, if any.
-     * @param string|Stringable|null     $dataKey   The missing data key, if any.
-     *
-     * @since [*next-version*]
-     *
-     * @throws NotFoundExceptionInterface
-     */
-    abstract protected function _throwNotFoundException(
-        $message = null,
-        $code = null,
-        RootException $previous = null,
-        ContainerInterface $container = null,
-        $dataKey = null
-    );
-
-    /**
-     * Creates a new invalid argument exception.
+     * Creates a new Out Of Bounds exception.
      *
      * @since [*next-version*]
      *
@@ -87,13 +60,13 @@ trait UnsetDataCapableTrait
      * @param RootException|null     $previous The inner exception for chaining, if any.
      * @param mixed|null             $argument The invalid argument, if any.
      *
-     * @return InvalidArgumentException The new exception.
+     * @return OutOfBoundsException The new exception.
      */
-    abstract protected function _createInvalidArgumentException(
-            $message = null,
-            $code = null,
-            RootException $previous = null,
-            $argument = null
+    abstract protected function _createOutOfBoundsException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
     );
 
     /**
@@ -111,18 +84,18 @@ trait UnsetDataCapableTrait
     abstract protected function __($string, $args = [], $context = null);
 
     /**
-     * Normalizes a value to its string representation.
+     * Normalizes an array key.
      *
-     * The values that can be normalized are any scalar values, as well as
-     * {@see StringableInterface).
+     * If key is not an integer (strict type check), it will be normalized to string.
+     * Otherwise it is left as is.
      *
      * @since [*next-version*]
      *
-     * @param Stringable|string|int|float|bool $subject The value to normalize to string.
+     * @param string|int|float|bool|Stringable $key The key to normalize.
      *
      * @throws InvalidArgumentException If the value cannot be normalized.
      *
-     * @return string The string that resulted from normalization.
+     * @return string|int The normalized key.
      */
-    abstract protected function _normalizeString($subject);
+    abstract protected function _normalizeKey($key);
 }

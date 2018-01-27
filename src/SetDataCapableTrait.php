@@ -2,8 +2,8 @@
 
 namespace Dhii\Data\Object;
 
+use ArrayAccess;
 use Dhii\Util\String\StringableInterface as Stringable;
-use Traversable;
 use Exception as RootException;
 use InvalidArgumentException;
 
@@ -15,64 +15,46 @@ use InvalidArgumentException;
 trait SetDataCapableTrait
 {
     /**
-     * Assign data.
+     * Assign a single piece of data.
      *
      * @since [*next-version*]
      *
-     * @param iterable $data The data to set. Existing keys will be overwritten.
-     *                       The rest of the data remains unaltered.
+     * @param string|int|float|bool|Stringable $key   The key, for which to assign the data.
+     *                                                Unless an integer is given, this will be normalized to string.
+     * @param mixed                            $value The value to assign.
+     *
+     * @throws InvalidArgumentException If key is invalid.
+     * @throws RootException            If a problem occurs while writing data.
      */
-    protected function _setData($data)
+    protected function _setData($key, $value)
     {
-        if (!is_array($data) && !($data instanceof Traversable)) {
-            throw $this->_createInvalidArgumentException($this->__('Data must be iterable'), null, null, $data);
-        }
-
+        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
-        foreach ($data as $_key => $_value) {
-            $store->{(string) $_key} = $_value;
-        }
+        $store->offsetSet($key, $value);
     }
 
     /**
-     * Retrieves the data store obeject.
+     * Retrieves a pointer to the data store.
      *
      * @since [*next-version*]
      *
-     * @return object The data store.
+     * @return ArrayAccess The data store.
      */
     abstract protected function _getDataStore();
 
     /**
-     * Creates a new invalid argument exception.
+     * Normalizes an array key.
+     *
+     * If key is not an integer (strict type check), it will be normalized to string.
+     * Otherwise it is left as is.
      *
      * @since [*next-version*]
      *
-     * @param string|Stringable|null $message  The error message, if any.
-     * @param int|null               $code     The error code, if any.
-     * @param RootException|null     $previous The inner exception for chaining, if any.
-     * @param mixed|null             $argument The invalid argument, if any.
+     * @param string|int|float|bool|Stringable $key The key to normalize.
      *
-     * @return InvalidArgumentException The new exception.
+     * @throws InvalidArgumentException If the value cannot be normalized.
+     *
+     * @return string|int The normalized key.
      */
-    abstract protected function _createInvalidArgumentException(
-            $message = null,
-            $code = null,
-            RootException $previous = null,
-            $argument = null
-    );
-
-    /**
-     * Translates a string, and replaces placeholders.
-     *
-     * @since [*next-version*]
-     * @see sprintf()
-     *
-     * @param string $string  The format string to translate.
-     * @param array  $args    Placeholder values to replace in the string.
-     * @param mixed  $context The context for translation.
-     *
-     * @return string The translated string.
-     */
-    abstract protected function __($string, $args = [], $context = null);
+    abstract protected function _normalizeKey($key);
 }
