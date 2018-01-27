@@ -5,6 +5,7 @@ namespace Dhii\Data\Object\UnitTest;
 use ArrayObject;
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataStoreCapableTrait as TestSubject;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
  * Tests {@see TestSubject}.
@@ -25,12 +26,48 @@ class GetDataStoreCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      *
-     * @return object
+     * @return MockObject
      */
     public function createInstance()
     {
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
                 ->getMockForTrait();
+
+        return $mock;
+    }
+
+    /**
+     * Merges the values of two arrays.
+     *
+     * The resulting product will be a numeric array where the values of both inputs are present, without duplicates.
+     *
+     * @since [*next-version*]
+     *
+     * @param array $destination The base array.
+     * @param array $source      The array with more keys.
+     *
+     * @return array The array which contains unique values
+     */
+    public function mergeValues($destination, $source)
+    {
+        return array_keys(array_merge(array_flip($destination), array_flip($source)));
+    }
+
+    /**
+     * Creates a new store mock.
+     *
+     * @since [*next-version*]
+     *
+     * @return ArrayObject|MockObject The new store mock.
+     */
+    public function createStore($data = [], $methods = [])
+    {
+        $methods = $this->mergeValues($methods, [
+        ]);
+
+        $mock = $this->getMockBuilder('ArrayObject')
+            ->setMethods($methods)
+            ->getMock($data);
 
         return $mock;
     }
@@ -48,23 +85,39 @@ class GetDataStoreCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that the reference to a data store is returned correctly.
+     * Tests that the `_getDataStore()` method works correctly when store is empty.
      *
      * @since [*next-version*]
      */
-    public function testGetDataStore()
+    public function testGetDataStoreCreate()
     {
+        $store = $this->createStore();
         $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
-        $key1 = uniqid('key1-');
-        $val1 = uniqid('val1-');
 
-        $store = $_subject->_getDataStore();
-        $this->assertInstanceOf('ArrayObject', $store, 'Initial data state was incorrect');
+        $subject->expects($this->exactly(1))
+                ->method('_createDataStore')
+                ->will($this->returnValue($store));
 
-        $store->offsetSet($key1, $val1);
-        $store = $_subject->_getDataStore();
-        $this->assertTrue($store->offsetExists($key1), 'Internal storage does not reflect new state');
-        $this->assertEquals($val1, $store->offsetGet($key1), 'Internal storage does not reflect new state');
+        $_subject->dataStore = null;
+        $result = $_subject->_getDataStore();
+        $this->assertSame($store, $result, 'Initial data state was incorrect');
+        $this->assertSame($_subject->dataStore, $store, 'Subject did not cache the data store');
+    }
+
+    /**
+     * Tests that `_getDataStore()` works correctly when store is cached.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataStoreRetrieve()
+    {
+        $store = $this->createStore();
+        $subject = $this->createInstance();
+        $_subject = $this->reflect($subject);
+
+        $_subject->dataStore = $store;
+        $result = $_subject->_getDataStore();
+        $this->assertSame($store, $result, 'Subject did not correctly retrieve cached data store');
     }
 }
