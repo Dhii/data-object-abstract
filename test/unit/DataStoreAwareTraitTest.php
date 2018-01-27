@@ -3,8 +3,9 @@
 namespace Dhii\Data\Object\UnitTest;
 
 use ArrayObject;
+use InvalidArgumentException;
 use Xpmock\TestCase;
-use Dhii\Data\Object\GetDataStoreCapableTrait as TestSubject;
+use Dhii\Data\Object\DataStoreAwareTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
@@ -12,26 +13,36 @@ use PHPUnit_Framework_MockObject_MockObject as MockObject;
  *
  * @since [*next-version*]
  */
-class GetDataStoreCapableTraitTest extends TestCase
+class DataStoreAwareTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\GetDataStoreCapableTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\DataStoreAwareTrait';
 
     /**
      * Creates a new instance of the test subject.
      *
      * @since [*next-version*]
      *
-     * @return MockObject
+     * @param array $methods The methods to mock.
+     *
+     * @return MockObject The new instance.
      */
-    public function createInstance()
+    public function createInstance($methods = [])
     {
+        $methods = $this->mergeValues($methods, [
+            '__',
+        ]);
+
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
-                ->getMockForTrait();
+            ->setMethods($methods)
+            ->getMockForTrait();
+
+        $mock->method('__')
+            ->will($this->returnArgument(0));
 
         return $mock;
     }
@@ -68,6 +79,24 @@ class GetDataStoreCapableTraitTest extends TestCase
         $mock = $this->getMockBuilder('ArrayObject')
             ->setMethods($methods)
             ->getMock($data);
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new Invalid Argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The exception message.
+     *
+     * @return InvalidArgumentException The new exception.
+     */
+    public function createInvalidArgumentException($message = '')
+    {
+        $mock = $this->getMockBuilder('InvalidArgumentException')
+            ->setConstructorArgs([$message])
+            ->getMock();
 
         return $mock;
     }
@@ -119,5 +148,67 @@ class GetDataStoreCapableTraitTest extends TestCase
         $_subject->dataStore = $store;
         $result = $_subject->_getDataStore();
         $this->assertSame($store, $result, 'Subject did not correctly retrieve cached data store');
+    }
+
+    /**
+     * Tests that `_setDataStore()` works as expected when given an {@see ArrayAccess}.
+     *
+     * @since [*next-version*]
+     */
+    public function testSetDataStoreArrayAccess()
+    {
+        $store = $this->createStore();
+        $subject = $this->createInstance();
+        $_subject = $this->reflect($subject);
+
+        $initialState = $_subject->dataStore;
+        $this->assertNull($initialState, 'The initial state of the subject is wrong');
+
+        $_subject->_setDataStore($store);
+        $modifiedState = $_subject->dataStore;
+        $this->assertSame($store, $modifiedState, 'The modified state of the subject is wrong');
+    }
+
+    /**
+     * Tests that `_setDataStore()` works as expected when given null.
+     *
+     * @since [*next-version*]
+     */
+    public function testSetDataStoreNull()
+    {
+        $store = null;
+        $subject = $this->createInstance();
+        $_subject = $this->reflect($subject);
+
+        $_subject->dataStore = uniqid('store');
+        $_subject->_setDataStore($store);
+        $modifiedState = $_subject->dataStore;
+        $this->assertSame($store, $modifiedState, 'The modified state of the subject is wrong');
+    }
+
+    /**
+     * Tests that `_setDataStore()` fails as expected when given an invalid store.
+     *
+     * @since [*next-version*]
+     */
+    public function testSetDataStoreFailureInvalidStore()
+    {
+        $exception = $this->createInvalidArgumentException('Invalid store');
+        $store = uniqid('store');
+        $subject = $this->createInstance();
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_createInvalidArgumentException')
+            ->with(
+                $this->isType('string'),
+                null,
+                null,
+                $store
+            )
+            ->will($this->returnValue($exception));
+
+        $this->setExpectedException('InvalidArgumentException');
+        $_subject->_setDataStore($store);
     }
 }
