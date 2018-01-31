@@ -30,7 +30,7 @@ trait DataStoreAwareTrait
      *
      * @since [*next-version*]
      *
-     * @return ArrayObject The data store.
+     * @return ArrayAccess The data store.
      */
     protected function _getDataStore()
     {
