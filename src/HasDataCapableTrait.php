@@ -5,6 +5,9 @@ namespace Dhii\Data\Object;
 use ArrayAccess;
 use Dhii\Util\String\StringableInterface as Stringable;
 use InvalidArgumentException;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use stdClass;
 
 /**
  * Functionality for data checking.
@@ -21,16 +24,16 @@ trait HasDataCapableTrait
      * @param string|int|float|bool|Stringable $key The key, for which to check the data.
      *                                              Unless an integer is given, this will be normalized to string.
      *
-     * @throws InvalidArgumentException If key is invalid.
+     * @throws InvalidArgumentException    If key is invalid.
+     * @throws ContainerExceptionInterface If an error occurred while reading from the container.
      *
      * @return bool True if data for the specified key exists; false otherwise.
      */
     protected function _hasData($key)
     {
-        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
 
-        return $store->offsetExists($key);
+        return $this->_containerHas($store, $key);
     }
 
     /**
@@ -43,18 +46,16 @@ trait HasDataCapableTrait
     abstract protected function _getDataStore();
 
     /**
-     * Normalizes an array key.
-     *
-     * If key is not an integer (strict type check), it will be normalized to string.
-     * Otherwise it is left as is.
+     * Retrieves an entry from a container or data set.
      *
      * @since [*next-version*]
      *
-     * @param string|int|float|bool|Stringable $key The key to normalize.
+     * @param array|ArrayAccess|stdClass|ContainerInterface $container The container to read from.
+     * @param string|int|float|bool|Stringable              $key       The key of the value to retrieve.
      *
-     * @throws InvalidArgumentException If the value cannot be normalized.
+     * @throws ContainerExceptionInterface If an error occurred while reading from the container.
      *
-     * @return string|int The normalized key.
+     * @return bool True if the container has an entry for the given key, false if not.
      */
-    abstract protected function _normalizeKey($key);
+    abstract protected function _containerHas($container, $key);
 }
