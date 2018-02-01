@@ -43,7 +43,7 @@ trait GetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return ArrayAccess The data store.
+     * @return array|ArrayAccess|stdClass|ContainerInterface The data store.
      */
     abstract protected function _getDataStore();
 
