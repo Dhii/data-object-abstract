@@ -116,21 +116,16 @@ class SetDataCapableTraitTest extends TestCase
     {
         $key = uniqid('key');
         $val = uniqid('val');
-        $store = $this->createStore([], ['offsetSet']);
-        $subject = $this->createInstance(['_normalizeKey', '_getDataStore']);
+        $store = $this->createStore();
+        $subject = $this->createInstance(['_getDataStore', '_containerSet']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-                ->method('_normalizeKey')
-                ->with($key)
-                ->will($this->returnValue($key));
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
-                ->method('_getDataStore')
-                ->will($this->returnValue($store));
-
-        $store->expects($this->exactly(1))
-                ->method('offsetSet')
-                ->with($key, $val);
+            ->method('_containerSet')
+            ->with($store, $key, $val);
 
         $_subject->_setData($key, $val);
     }
