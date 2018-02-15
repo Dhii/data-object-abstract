@@ -27,7 +27,7 @@ trait SetDataCapableTrait
      * @param mixed                            $value The value to assign.
      *
      * @throws InvalidArgumentException    If key is invalid.
-     * @throws OutOfRangeException         If internal container is invalid.
+     * @throws OutOfRangeException         If internal data store is invalid.
      * @throws ContainerExceptionInterface If error occurs while writing to container.
      */
     protected function _setData($key, $value)
