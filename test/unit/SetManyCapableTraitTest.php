@@ -2,11 +2,15 @@
 
 namespace Dhii\Data\Object\UnitTest;
 
+use ArrayObject;
 use InvalidArgumentException;
 use OutOfRangeException;
+use Exception as RootException;
 use Xpmock\TestCase;
 use Dhii\Data\Object\SetManyCapableTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
+use PHPUnit_Framework_MockObject_MockBuilder as MockBuilder;
+use Psr\Container\ContainerExceptionInterface;
 
 /**
  * Tests {@see TestSubject}.
@@ -63,6 +67,34 @@ class SetManyCapableTraitTest extends TestCase
     }
 
     /**
+     * Creates a mock that both extends a class and implements interfaces.
+     *
+     * This is particularly useful for cases where the mock is based on an
+     * internal class, such as in the case with exceptions. Helps to avoid
+     * writing hard-coded stubs.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $className      Name of the class for the mock to extend.
+     * @param string $interfaceNames Names of the interfaces for the mock to implement.
+     *
+     * @return MockBuilder The builder for a mock of an object that extends and implements
+     *                     the specified class and interfaces.
+     */
+    public function mockClassAndInterfaces($className, $interfaceNames = [])
+    {
+        $paddingClassName = uniqid($className);
+        $definition = vsprintf('abstract class %1$s extends %2$s implements %3$s {}', [
+            $paddingClassName,
+            $className,
+            implode(', ', $interfaceNames),
+        ]);
+        eval($definition);
+
+        return $this->getMockBuilder($paddingClassName);
+    }
+
+    /**
      * Creates a new Invalid Argument exception.
      *
      * @since [*next-version*]
@@ -82,6 +114,24 @@ class SetManyCapableTraitTest extends TestCase
     }
 
     /**
+     * Creates a new Invalid Argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return MockObject|RootException|ContainerExceptionInterface The new exception.
+     */
+    public function createContainerException($message = '')
+    {
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\ContainerExceptionInterface'])
+            ->setConstructorArgs([$message])
+            ->getMock();
+
+        return $mock;
+    }
+
+    /**
      * Creates a new Out of Range exception mock.
      *
      * @since [*next-version*]
@@ -92,6 +142,26 @@ class SetManyCapableTraitTest extends TestCase
     {
         $mock = $this->getMockBuilder('OutOfRangeException')
             ->setConstructorArgs([$message])
+            ->getMock();
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new store mock.
+     *
+     * @since [*next-version*]
+     *
+     * @return ArrayObject|MockObject The new store mock.
+     */
+    public function createStore($data = [], $methods = [])
+    {
+        $methods = $this->mergeValues($methods, [
+        ]);
+
+        $mock = $this->getMockBuilder('ArrayObject')
+            ->setConstructorArgs($data)
+            ->setMethods($methods)
             ->getMock();
 
         return $mock;
@@ -121,20 +191,21 @@ class SetManyCapableTraitTest extends TestCase
             uniqid('key') => uniqid('val'),
             uniqid('key') => uniqid('val'),
         ];
-        $subject = $this->createInstance(['_normalizeIterable', '_setData']);
+        $store = $this->createStore();
+        $subject = $this->createInstance(['_normalizeIterable', '_getDataStore', '_containerSetMany']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-                ->method('_normalizeIterable')
-                ->with($data)
-                ->will($this->returnValue($data));
-        $methodMock = $subject->expects($this->exactly(count($data)))
-                ->method('_setData');
-        $methodArgs = $data;
-        array_walk($methodArgs, function (&$val, $key) {
-            $val = [$key, $val];
-        });
-        call_user_func_array([$methodMock, 'withConsecutive'], $methodArgs);
+            ->method('_normalizeIterable')
+            ->with($data)
+            ->will($this->returnArgument(0));
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->with()
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerSetMany')
+            ->with($store, $data);
 
         $_subject->_setMany($data);
     }
@@ -160,30 +231,48 @@ class SetManyCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that `_setMany()` fails correctly when one of the keys is invalid.
+     * Tests that `_setMany()` fails correctly when one of the keys or the internal data store is invalid.
      *
      * @since [*next-version*]
      */
-    public function testSetManyFailureInvalidKey()
+    public function testSetManyFailureInvalidKeyOrStore()
     {
-        $innerException = $this->createInvalidArgumentException('Data key is invalid');
         $exception = $this->createOutOfRangeException('Invalid data key');
         $data = [uniqid('key') => uniqid('val')];
-        $subject = $this->createInstance(['_normalizeIterable', '_setData']);
+        $subject = $this->createInstance(['_normalizeIterable', '_containerSetMany']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-                ->method('_normalizeIterable')
-                ->will($this->returnValue($data));
+            ->method('_normalizeIterable')
+            ->will($this->returnValue($data));
         $subject->expects($this->exactly(1))
-                ->method('_setData')
-                ->will($this->throwException($innerException));
-        $subject->expects($this->exactly(1))
-                ->method('_createOutOfRangeException')
-                ->with()
-                ->will($this->returnValue($exception));
+            ->method('_containerSetMany')
+            ->will($this->throwException($exception));
 
         $this->setExpectedException('OutOfRangeException');
+        $_subject->_setMany($data);
+    }
+
+    /**
+     * Tests that `_setMany()` fails correctly if problem with container.
+     *
+     * @since [*next-version*]
+     */
+    public function testSetManyFailureContainer()
+    {
+        $exception = $this->createContainerException('Container problem');
+        $data = [uniqid('key') => uniqid('val')];
+        $subject = $this->createInstance(['_normalizeIterable', '_containerSetMany']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_normalizeIterable')
+            ->will($this->returnValue($data));
+        $subject->expects($this->exactly(1))
+            ->method('_containerSetMany')
+            ->will($this->throwException($exception));
+
+        $this->setExpectedException('Psr\Container\ContainerExceptionInterface');
         $_subject->_setMany($data);
     }
 }
