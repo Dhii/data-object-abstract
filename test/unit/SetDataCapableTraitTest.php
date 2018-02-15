@@ -36,7 +36,7 @@ class SetDataCapableTraitTest extends TestCase
     public function createInstance($methods = [])
     {
         $methods = $this->mergeValues($methods, [
-            '__'
+            '__',
         ]);
         $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
                 ->setMethods($methods)
