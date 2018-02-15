@@ -3,6 +3,8 @@
 namespace Dhii\Data\Object\UnitTest;
 
 use ArrayObject;
+use Psr\Container\ContainerExceptionInterface;
+use stdClass;
 use Xpmock\TestCase;
 use Dhii\Data\Object\GetDataCapableTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
@@ -90,23 +92,41 @@ class GetDataCapableTraitTest extends TestCase
         ]);
         eval($definition);
 
-        return $this->getMockForAbstractClass($paddingClassName);
+        return $this->getMockBuilder($paddingClassName);
     }
 
     /**
-     * Creates a new Not Found exception.
+     * Creates a new Invalid Argument exception.
      *
      * @since [*next-version*]
      *
      * @param string $message The error message.
      *
-     * @return MockObject|NotFoundExceptionInterface|RootException The new exception.
+     * @return MockObject|InvalidArgumentException The new exception.
      */
-    public function createNotFoundException($message = '')
+    public function createInvalidArgumentException($message = '')
     {
-        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface']);
-        $mock->method('getMessage')
-            ->will($this->returnValue($message));
+        $mock = $this->getMockBuilder('InvalidArgumentException')
+            ->setConstructorArgs([$message])
+            ->getMock();
+
+        return $mock;
+    }
+
+    /**
+     * Creates a new Out of Range exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return MockObject|InvalidArgumentException The new exception.
+     */
+    public function createOutOfRangeException($message = '')
+    {
+        $mock = $this->getMockBuilder('OutOfRangeException')
+            ->setConstructorArgs([$message])
+            ->getMock();
 
         return $mock;
     }
@@ -118,14 +138,31 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @param string $message The error message.
      *
-     * @return InvalidArgumentException The new exception.
+     * @return MockObject|RootException|ContainerExceptionInterface The new exception.
      */
-    public function createInvalidArgumentException($message = '')
+    public function createContainerException($message = '')
     {
-        $mock = $this->getMock('InvalidArgumentException');
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\ContainerExceptionInterface'])
+            ->setConstructorArgs([$message])
+            ->getMock();
 
-        $mock->method('getMessage')
-                ->will($this->returnValue($message));
+        return $mock;
+    }
+
+    /**
+     * Creates a new Not Found exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return MockObject|RootException|NotFoundExceptionInterface The new exception.
+     */
+    public function createNotFoundException($message = '')
+    {
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface'])
+            ->setConstructorArgs([$message])
+            ->getMock();
 
         return $mock;
     }
@@ -137,7 +174,7 @@ class GetDataCapableTraitTest extends TestCase
      *
      * @param string $string The string that the object will represent.
      *
-     * @return Stringable The new stringable.
+     * @return MockObject|Stringable The new stringable.
      */
     public function createStringable($string)
     {
@@ -181,7 +218,7 @@ class GetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that data gets retrieved correctly.
+     * Tests that `_getData()` works correctly.
      *
      * @since [*next-version*]
      */
@@ -193,7 +230,7 @@ class GetDataCapableTraitTest extends TestCase
             $key => $val,
         ];
         $store = $this->createStore($data);
-        $subject = $this->createInstance(['_containerGet']);
+        $subject = $this->createInstance(['_getDataStore', '_containerGet']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
@@ -211,11 +248,49 @@ class GetDataCapableTraitTest extends TestCase
     }
 
     /**
-     * Tests that accessing a non-existing key fails correctly.
+     * Tests that `_getData()` fails correctly if key is invalid.
      *
      * @since [*next-version*]
      */
-    public function testGetDataNotFoundFailure()
+    public function testGetDataFailureInvalidKey()
+    {
+        $key = new stdClass();
+        $store = $this->createStore();
+        $innerException = $this->createOutOfRangeException('Invalid key');
+        $exception = $this->createInvalidArgumentException('\'Invalid key');
+        $subject = $this->createInstance(['_getDataStore', '_containerGet', '_createInvalidArgumentException']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerGet')
+            ->with(
+                $this->equalTo($store),
+                $this->equalTo($key)
+            )
+            ->will($this->throwException($innerException));
+        $subject->expects($this->exactly(1))
+            ->method('_createInvalidArgumentException')
+            ->with(
+                $this->isType('string'),
+                null,
+                $innerException,
+                $key
+            )
+            ->will($this->returnValue($exception));
+
+        $this->setExpectedException('InvalidArgumentException');
+        $_subject->_getData($key);
+    }
+
+    /**
+     * Tests that `_getData()` fails correctly if key not found.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataFailureNotFound()
     {
         $key = uniqid('key');
         $store = $this->createStore();
@@ -223,17 +298,46 @@ class GetDataCapableTraitTest extends TestCase
         $subject = $this->createInstance(['_getDataStore', '_containerGet']);
         $_subject = $this->reflect($subject);
 
-        $subject->method('_getDataStore')
-                ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
-                ->method('_containerGet')
-                ->with(
-                    $this->equalTo($store),
-                    $this->equalTo($key)
-                )
-                ->will($this->throwException($exception));
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerGet')
+            ->with(
+                $this->equalTo($store),
+                $this->equalTo($key)
+            )
+            ->will($this->throwException($exception));
 
         $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
+        $_subject->_getData($key);
+    }
+
+    /**
+     * Tests that `_getData()` fails correctly if problem with container.
+     *
+     * @since [*next-version*]
+     */
+    public function testGetDataFailureContainer()
+    {
+        $key = uniqid('key');
+        $store = $this->createStore();
+        $exception = $this->createContainerException('Container problem');
+        $subject = $this->createInstance(['_getDataStore', '_containerGet']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerGet')
+            ->with(
+                $this->equalTo($store),
+                $this->equalTo($key)
+            )
+            ->will($this->throwException($exception));
+
+        $this->setExpectedException('Psr\Container\ContainerExceptionInterface');
         $_subject->_getData($key);
     }
 }
