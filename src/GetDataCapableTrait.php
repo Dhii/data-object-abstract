@@ -4,6 +4,8 @@ namespace Dhii\Data\Object;
 
 use Dhii\Util\String\StringableInterface as Stringable;
 use InvalidArgumentException;
+use Exception as RootException;
+use OutOfRangeException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -35,7 +37,13 @@ trait GetDataCapableTrait
     {
         $store = $this->_getDataStore();
 
-        return $this->_containerGet($store, $key);
+        try {
+            $result = $this->_containerGet($store, $key);
+        } catch (OutOfRangeException $e) {
+            throw $this->_createInvalidArgumentException($this->__('Invalid key'), null, $e, $key);
+        }
+
+        return $result;
     }
 
     /**
@@ -61,4 +69,37 @@ trait GetDataCapableTrait
      * @return mixed The value mapped to the given key.
      */
     abstract protected function _containerGet($container, $key);
+
+    /**
+     * Creates a new Dhii invalid argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string|Stringable|null $message  The error message, if any.
+     * @param int|null               $code     The error code, if any.
+     * @param RootException|null     $previous The inner exception for chaining, if any.
+     * @param mixed|null             $argument The invalid argument, if any.
+     *
+     * @return InvalidArgumentException The new exception.
+     */
+    abstract protected function _createInvalidArgumentException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
+    );
+
+    /**
+     * Translates a string, and replaces placeholders.
+     *
+     * @since [*next-version*]
+     * @see   sprintf()
+     *
+     * @param string $string  The format string to translate.
+     * @param array  $args    Placeholder values to replace in the string.
+     * @param mixed  $context The context for translation.
+     *
+     * @return string The translated string.
+     */
+    abstract protected function __($string, $args = [], $context = null);
 }
