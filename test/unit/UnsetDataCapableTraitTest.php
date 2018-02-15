@@ -3,11 +3,16 @@
 namespace Dhii\Data\Object\UnitTest;
 
 use ArrayObject;
-use OutOfBoundsException;
+use InvalidArgumentException;
+use Exception as RootException;
+use OutOfRangeException;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use stdClass;
 use Xpmock\TestCase;
 use Dhii\Data\Object\UnsetDataCapableTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
+use PHPUnit_Framework_MockObject_MockBuilder as MockBuilder;
 use Dhii\Util\String\StringableInterface as Stringable;
 
 /**
@@ -90,7 +95,7 @@ class UnsetDataCapableTraitTest extends TestCase
      * @param string $className      Name of the class for the mock to extend.
      * @param string $interfaceNames Names of the interfaces for the mock to implement.
      *
-     * @return object The object that extends and implements the specified class and interfaces.
+     * @return MockBuilder The object that extends and implements the specified class and interfaces.
      */
     public function mockClassAndInterfaces($className, $interfaceNames = [])
     {
@@ -102,7 +107,25 @@ class UnsetDataCapableTraitTest extends TestCase
         ]);
         eval($definition);
 
-        return $this->getMockForAbstractClass($paddingClassName);
+        return $this->getMockBuilder($paddingClassName);
+    }
+
+    /**
+     * Creates a new Out of Range exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return MockObject|OutOfRangeException The new exception.
+     */
+    public function createOutOfRangeException($message = '')
+    {
+        $mock = $this->getMockBuilder('OutOfRangeException')
+            ->setConstructorArgs([$message])
+            ->getMock();
+
+        return $mock;
     }
 
     /**
@@ -112,14 +135,31 @@ class UnsetDataCapableTraitTest extends TestCase
      *
      * @param string $message The error message.
      *
-     * @return OutOfBoundsException The new exception.
+     * @return MockObject|InvalidArgumentException The new exception.
      */
-    public function createOutOfBoundsException($message = '')
+    public function createInvalidArgumentException($message = '')
     {
-        $mock = $this->getMock('OutOfBoundsException');
+        $mock = $this->getMockBuilder('InvalidArgumentException')
+            ->setConstructorArgs([$message])
+            ->getMock();
 
-        $mock->method('getMessage')
-                ->will($this->returnValue($message));
+        return $mock;
+    }
+
+    /**
+     * Creates a new Container exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string $message The error message.
+     *
+     * @return MockObject|RootException|ContainerExceptionInterface The new exception.
+     */
+    public function createContainerException($message = '')
+    {
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\ContainerExceptionInterface'])
+            ->setConstructorArgs([$message])
+            ->getMock();
 
         return $mock;
     }
@@ -131,13 +171,13 @@ class UnsetDataCapableTraitTest extends TestCase
      *
      * @param string $message The error message.
      *
-     * @return NotFoundExceptionInterface The new exception.
+     * @return MockObject|RootException|NotFoundExceptionInterface The new exception.
      */
     public function createNotFoundException($message = '')
     {
-        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface']);
-        $mock->method('getMessage')
-                ->will($this->returnValue($message));
+        $mock = $this->mockClassAndInterfaces('Exception', ['Psr\Container\NotFoundExceptionInterface'])
+            ->setConstructorArgs([$message])
+            ->getMock();
 
         return $mock;
     }
@@ -200,25 +240,16 @@ class UnsetDataCapableTraitTest extends TestCase
     public function testUnsetData()
     {
         $key = uniqid('key');
-        $store = $this->createStore([], ['offsetExists', 'offsetUnset']);
-        $exception = $this->createOutOfBoundsException();
-        $subject = $this->createInstance(['_getDataStore']);
+        $store = $this->createStore();
+        $subject = $this->createInstance(['_getDataStore', '_containerUnset']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
             ->method('_getDataStore')
             ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
-            ->method('_normalizeKey')
-            ->with($this->equalTo($key));
-
-        $store->expects($this->exactly(1))
-            ->method('offsetExists')
-            ->with($key)
-            ->will($this->returnValue(true));
-        $store->expects($this->exactly(1))
-            ->method('offsetUnset')
-            ->with($key);
+            ->method('_containerUnset')
+            ->with($store, $key);
 
         $_subject->_unsetData($key);
     }
@@ -228,26 +259,118 @@ class UnsetDataCapableTraitTest extends TestCase
      *
      * @since [*next-version*]
      */
-    public function testUnsetDataFailure()
+    public function testUnsetDataFailureNotFound()
     {
         $key = uniqid('key');
-        $store = $this->createStore([], ['offsetExists']);
-        $subject = $this->createInstance(['_getDataStore']);
+        $store = $this->createStore();
+        $exception = $this->createNotFoundException('Key not found');
+        $subject = $this->createInstance(['_getDataStore', '_containerUnset']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
             ->method('_getDataStore')
             ->will($this->returnValue($store));
         $subject->expects($this->exactly(1))
-            ->method('_normalizeKey')
-            ->with($this->equalTo($key));
+            ->method('_containerUnset')
+            ->with($store, $key)
+            ->will($this->throwException($exception));
 
-        $store->expects($this->exactly(1))
-            ->method('offsetExists')
-            ->with($key)
-            ->will($this->returnValue(false));
+        $this->setExpectedException('Psr\Container\NotFoundExceptionInterface');
+        $_subject->_unsetData($key);
+    }
 
-        $this->setExpectedException('OutOfBoundsException');
+    /**
+     * Tests that the `_unsetData()` methods fails as expected if problem with container.
+     *
+     * @since [*next-version*]
+     */
+    public function testUnsetDataFailureContainer()
+    {
+        $key = uniqid('key');
+        $store = uniqid('container');
+        $exception = $this->createContainerException('Container problem');
+        $subject = $this->createInstance(['_getDataStore', '_containerUnset']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerUnset')
+            ->with($store, $key)
+            ->will($this->throwException($exception));
+
+        $this->setExpectedException('Psr\Container\ContainerExceptionInterface');
+        $_subject->_unsetData($key);
+    }
+
+    /**
+     * Tests that the `_unsetData()` methods fails as expected if key is invalid.
+     *
+     * @since [*next-version*]
+     */
+    public function testUnsetDataFailureInvalidKey()
+    {
+        $key = new stdClass();
+        $store = $this->createStore();
+        $innerException = $this->createOutOfRangeException('Invalid key');
+        $exception = $this->createInvalidArgumentException('Invalid key');
+        $subject = $this->createInstance(['_getDataStore', '_containerUnset', '_createInvalidArgumentException']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerUnset')
+            ->with($store, $key)
+            ->will($this->throwException($innerException));
+        $subject->expects($this->exactly(1))
+            ->method('_createInvalidArgumentException')
+            ->with(
+                $this->isType('string'),
+                null,
+                $innerException,
+                $key
+            )
+            ->will($this->returnValue($exception));
+
+        $this->setExpectedException('InvalidArgumentException');
+        $_subject->_unsetData($key);
+    }
+
+    /**
+     * Tests that the `_unsetData()` methods fails as expected if inner store is invalid.
+     *
+     * @since [*next-version*]
+     */
+    public function testUnsetDataFailureInvalidStore()
+    {
+        $key = new stdClass();
+        $store = $this->createStore();
+        $innerException = $this->createInvalidArgumentException('Invalid container');
+        $exception = $this->createOutOfRangeException('Invalid store');
+        $subject = $this->createInstance(['_getDataStore', '_containerUnset', '_createOutOfRangeException']);
+        $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_getDataStore')
+            ->will($this->returnValue($store));
+        $subject->expects($this->exactly(1))
+            ->method('_containerUnset')
+            ->with($store, $key)
+            ->will($this->throwException($innerException));
+        $subject->expects($this->exactly(1))
+            ->method('_createOutOfRangeException')
+            ->with(
+                $this->isType('string'),
+                null,
+                $innerException,
+                $store
+            )
+            ->will($this->returnValue($exception));
+
+        $this->setExpectedException('OutOfRangeException');
         $_subject->_unsetData($key);
     }
 }
