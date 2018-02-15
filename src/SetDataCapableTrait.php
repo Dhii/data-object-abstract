@@ -4,8 +4,11 @@ namespace Dhii\Data\Object;
 
 use ArrayAccess;
 use Dhii\Util\String\StringableInterface as Stringable;
-use Exception as RootException;
 use InvalidArgumentException;
+use OutOfRangeException;
+use Psr\Container\ContainerExceptionInterface;
+use stdClass;
+use Exception as RootException;
 
 /**
  * Functionality for data assignment.
@@ -23,14 +26,20 @@ trait SetDataCapableTrait
      *                                                Unless an integer is given, this will be normalized to string.
      * @param mixed                            $value The value to assign.
      *
-     * @throws InvalidArgumentException If key is invalid.
-     * @throws RootException            If a problem occurs while writing data.
+     * @throws InvalidArgumentException    If key is invalid.
+     * @throws OutOfRangeException         If internal container is invalid.
+     * @throws ContainerExceptionInterface If error occurs while writing to container.
      */
     protected function _setData($key, $value)
     {
-        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
-        $store->offsetSet($key, $value);
+        try {
+            $this->_containerSet($store, $key, $value);
+        } catch (InvalidArgumentException $e) {
+            throw $this->_createOutOfRangeException('Invalid store', null, $e, $store);
+        } catch (OutOfRangeException $e) {
+            throw $this->_createInvalidArgumentException('Invalid key', null, $e, $store);
+        }
     }
 
     /**
@@ -38,23 +47,60 @@ trait SetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return ArrayAccess The data store.
+     * @return array|ArrayAccess|stdClass The data store.
      */
     abstract protected function _getDataStore();
 
     /**
-     * Normalizes an array key.
-     *
-     * If key is not an integer (strict type check), it will be normalized to string.
-     * Otherwise it is left as is.
+     * Sets data on the container.
      *
      * @since [*next-version*]
      *
-     * @param string|int|float|bool|Stringable $key The key to normalize.
+     * @param array|ArrayAccess|stdClass       $container The container to set data on.
+     * @param string|int|float|bool|Stringable $key       The key to set the value for.
+     * @param mixed                            $value     The value to set.
      *
-     * @throws InvalidArgumentException If the value cannot be normalized.
-     *
-     * @return string|int The normalized key.
+     * @throws InvalidArgumentException    If the container is invalid.
+     * @throws OutOfRangeException         If key is invalid.
+     * @throws ContainerExceptionInterface If error occurs while writing to container.
      */
-    abstract protected function _normalizeKey($key);
+    abstract protected function _containerSet(&$container, $key, $value);
+
+    /**
+     * Creates a new Out Of Range exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string|Stringable|null $message  The error message, if any.
+     * @param int|null               $code     The error code, if any.
+     * @param RootException|null     $previous The inner exception for chaining, if any.
+     * @param mixed|null             $argument The value that is out of range, if any.
+     *
+     * @return OutOfRangeException The new exception.
+     */
+    abstract protected function _createOutOfRangeException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
+    );
+
+    /**
+     * Creates a new Dhii invalid argument exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string|Stringable|null $message  The error message, if any.
+     * @param int|null               $code     The error code, if any.
+     * @param RootException|null     $previous The inner exception for chaining, if any.
+     * @param mixed|null             $argument The invalid argument, if any.
+     *
+     * @return InvalidArgumentException The new exception.
+     */
+    abstract protected function _createInvalidArgumentException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
+    );
 }
