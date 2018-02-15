@@ -36,9 +36,9 @@ trait SetDataCapableTrait
         try {
             $this->_containerSet($store, $key, $value);
         } catch (InvalidArgumentException $e) {
-            throw $this->_createOutOfRangeException('Invalid store', null, $e, $store);
+            throw $this->_createOutOfRangeException($this->__('Invalid store'), null, $e, $store);
         } catch (OutOfRangeException $e) {
-            throw $this->_createInvalidArgumentException('Invalid key', null, $e, $store);
+            throw $this->_createInvalidArgumentException($this->__('Invalid key'), null, $e, $store);
         }
     }
 
@@ -103,4 +103,18 @@ trait SetDataCapableTrait
         RootException $previous = null,
         $argument = null
     );
+
+    /**
+     * Translates a string, and replaces placeholders.
+     *
+     * @since [*next-version*]
+     * @see   sprintf()
+     *
+     * @param string $string  The format string to translate.
+     * @param array  $args    Placeholder values to replace in the string.
+     * @param mixed  $context The context for translation.
+     *
+     * @return string The translated string.
+     */
+    abstract protected function __($string, $args = [], $context = null);
 }
