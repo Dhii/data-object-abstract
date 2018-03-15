@@ -3,10 +3,13 @@
 namespace Dhii\Data\Object;
 
 use ArrayAccess;
-use OutOfBoundsException;
 use Dhii\Util\String\StringableInterface as Stringable;
 use Exception as RootException;
 use InvalidArgumentException;
+use OutOfRangeException;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use stdClass;
 
 /**
  * Functionality for data retrieval.
@@ -22,23 +25,22 @@ trait UnsetDataCapableTrait
      *
      * @param string|int|float|bool|Stringable $key The key of data to unset.
      *
-     * @throws OutOfBoundsException If the key does not exist.
+     * @throws InvalidArgumentException    If the key is invalid.
+     * @throws OutOfRangeException         If the inner store is invalid.
+     * @throws NotFoundExceptionInterface  If the key is not found.
+     * @throws ContainerExceptionInterface If problem accessing the container.
      */
     protected function _unsetData($key)
     {
-        $key   = $this->_normalizeKey($key);
         $store = $this->_getDataStore();
 
-        if (!$store->offsetExists($key)) {
-            throw $this->_createOutOfBoundsException(
-                $this->__('Data key does not exist'),
-                null,
-                null,
-                $key
-            );
+        try {
+            $this->_containerUnset($store, $key);
+        } catch (InvalidArgumentException $e) {
+            throw $this->_createOutOfRangeException($this->__('Invalid store'),  null, $e, $store);
+        } catch (OutOfRangeException $e) {
+            throw $this->_createInvalidArgumentException($this->__('Invalid key'), null, $e, $key);
         }
-
-        $store->offsetUnset($key);
     }
 
     /**
@@ -46,12 +48,46 @@ trait UnsetDataCapableTrait
      *
      * @since [*next-version*]
      *
-     * @return ArrayAccess The data store.
+     * @return array|ArrayAccess|stdClass The data store.
      */
     abstract protected function _getDataStore();
 
     /**
-     * Creates a new Out Of Bounds exception.
+     * Unsets a value with the specified key on the given container.
+     *
+     * @since [*next-version*]
+     *
+     * @param array|ArrayAccess|stdClass       $container The writable container to unset the value on.
+     * @param string|int|float|bool|Stringable $key       The key to unset the value for.
+     *
+     * @throws InvalidArgumentException    If the container is invalid.
+     * @throws OutOfRangeException         If the key is invalid.
+     * @throws NotFoundExceptionInterface  If the key is not found.
+     * @throws ContainerExceptionInterface If problem accessing the container.
+     */
+    abstract protected function _containerUnset(&$container, $key);
+
+    /**
+     * Creates a new Out Of Range exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string|Stringable|null $message  The error message, if any.
+     * @param int|null               $code     The error code, if any.
+     * @param RootException|null     $previous The inner exception for chaining, if any.
+     * @param mixed|null             $argument The value that is out of range, if any.
+     *
+     * @return OutOfRangeException The new exception.
+     */
+    abstract protected function _createOutOfRangeException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
+    );
+
+    /**
+     * Creates a new Invalid Argument exception.
      *
      * @since [*next-version*]
      *
@@ -60,9 +96,9 @@ trait UnsetDataCapableTrait
      * @param RootException|null     $previous The inner exception for chaining, if any.
      * @param mixed|null             $argument The invalid argument, if any.
      *
-     * @return OutOfBoundsException The new exception.
+     * @return InvalidArgumentException The new exception.
      */
-    abstract protected function _createOutOfBoundsException(
+    abstract protected function _createInvalidArgumentException(
         $message = null,
         $code = null,
         RootException $previous = null,
@@ -73,7 +109,7 @@ trait UnsetDataCapableTrait
      * Translates a string, and replaces placeholders.
      *
      * @since [*next-version*]
-     * @see sprintf()
+     * @see   sprintf()
      *
      * @param string $string  The format string to translate.
      * @param array  $args    Placeholder values to replace in the string.
@@ -82,20 +118,4 @@ trait UnsetDataCapableTrait
      * @return string The translated string.
      */
     abstract protected function __($string, $args = [], $context = null);
-
-    /**
-     * Normalizes an array key.
-     *
-     * If key is not an integer (strict type check), it will be normalized to string.
-     * Otherwise it is left as is.
-     *
-     * @since [*next-version*]
-     *
-     * @param string|int|float|bool|Stringable $key The key to normalize.
-     *
-     * @throws InvalidArgumentException If the value cannot be normalized.
-     *
-     * @return string|int The normalized key.
-     */
-    abstract protected function _normalizeKey($key);
 }

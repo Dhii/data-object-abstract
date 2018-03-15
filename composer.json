@@ -23,7 +23,8 @@
         "psr/container": "^1.0"
     },
     "suggest": {
-        "dhii/stringable-interface": "To be able to pass stringable objects as keys and messages"
+        "dhii/stringable-interface": "To be able to pass stringable objects as keys and messages",
+        "dhii/exception-helper-base": "For standard exception factories"
     },
     "autoload": {
         "psr-4": {

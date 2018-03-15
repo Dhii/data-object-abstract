@@ -29,20 +29,15 @@ class HasDataCapableTraitTest extends TestCase
      *
      * @return MockObject
      */
-    public function createInstance()
+    public function createInstance($methods = [])
     {
-        $mock = $this->getMockForTrait(static::TEST_SUBJECT_CLASSNAME, array(), '', false, true, true, [
-            '_getDataStore',
+        is_array($methods) && $methods = $this->mergeValues($methods, [
             '__',
-            '_normalizeKey',
         ]);
 
-        $mock->method('_normalizeKey')
-                ->will($this->returnCallback(function ($key) {
-                    return is_int($key)
-                        ? $key
-                        : (string) $key;
-                }));
+        $mock = $this->getMockBuilder(static::TEST_SUBJECT_CLASSNAME)
+            ->setMethods($methods)
+            ->getMockForTrait();
 
         return $mock;
     }
@@ -123,20 +118,20 @@ class HasDataCapableTraitTest extends TestCase
     {
         $key = uniqid('key');
         $isExists = true;
-        $store = $this->createStore([], ['offsetExists']);
-        $subject = $this->createInstance();
+        $store = $this->createStore();
+        $subject = $this->createInstance(['_getDataStore', '_containerHas']);
         $_subject = $this->reflect($subject);
 
-        $subject->expects($this->exactly(1))
-                ->method('_normalizeKey')
-                ->with($this->equalTo($key));
         $subject->expects($this->exactly(1))
                 ->method('_getDataStore')
                 ->will($this->returnValue($store));
 
-        $store->expects($this->exactly(1))
-                ->method('offsetExists')
-                ->with($key)
+        $subject->expects($this->exactly(1))
+                ->method('_containerHas')
+                ->with(
+                    $store,
+                    $key
+                )
                 ->will($this->returnValue($isExists));
 
         $this->assertEquals($isExists, $_subject->_hasData($key), 'Test subject did not determine that it has the specified data key');
@@ -151,20 +146,20 @@ class HasDataCapableTraitTest extends TestCase
     {
         $key = uniqid('key');
         $isExists = false;
-        $store = $this->createStore([], ['offsetExists']);
-        $subject = $this->createInstance();
+        $store = $this->createStore();
+        $subject = $this->createInstance(['_getDataStore', '_containerHas']);
         $_subject = $this->reflect($subject);
 
-        $subject->expects($this->exactly(1))
-            ->method('_normalizeKey')
-            ->with($this->equalTo($key));
         $subject->expects($this->exactly(1))
             ->method('_getDataStore')
             ->will($this->returnValue($store));
 
-        $store->expects($this->exactly(1))
-            ->method('offsetExists')
-            ->with($key)
+        $subject->expects($this->exactly(1))
+            ->method('_containerHas')
+            ->with(
+                $store,
+                $key
+            )
             ->will($this->returnValue($isExists));
 
         $this->assertEquals($isExists, $_subject->_hasData($key), 'Test subject did not determine that it does not have the specified data key');

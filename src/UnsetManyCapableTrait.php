@@ -2,12 +2,14 @@
 
 namespace Dhii\Data\Object;
 
-use OutOfBoundsException;
+use ArrayAccess;
 use OutOfRangeException;
+use Exception as RootException;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use stdClass;
 use Traversable;
 use Dhii\Util\String\StringableInterface as Stringable;
-use Exception as RootException;
 use InvalidArgumentException;
 
 /**
@@ -24,71 +26,46 @@ trait UnsetManyCapableTrait
      *
      * @param string[]|int[]|float[]|bool[]|Stringable[]|stdClass|Traversable $keys The keys of data to unset.
      *
-     * @throws InvalidArgumentException If the list of keys is invalid.
-     * @throws OutOfRangeException      If one of the keys is invalid.
-     * @throws OutOfBoundsException     If one of the keys does not exist.
+     * @throws InvalidArgumentException    If the list of keys is invalid.
+     * @throws OutOfRangeException         If the internal store or one of the keys is invalid.
+     * @throws NotFoundExceptionInterface  If one of the keys is not found.
+     * @throws ContainerExceptionInterface If problem accessing the container.
      */
     protected function _unsetMany($keys)
     {
-        $keys = $this->_normalizeIterable($keys);
+        $keys  = $this->_normalizeIterable($keys);
+        $store = $this->_getDataStore();
 
-        foreach ($keys as $_idx => $_key) {
-            try {
-                $this->_unsetData($_key);
-            } catch (InvalidArgumentException $e) {
-                throw $this->_createOutOfRangeException(
-                    $this->__('Tried to unset by an invalid key'),
-                    null,
-                    $e,
-                    $_key
-                );
-            }
+        try {
+            $this->_containerUnsetMany($store, $keys);
+        } catch (InvalidArgumentException $e) {
+            throw $this->_createOutOfRangeException($this->__('Invalid store'), null, $e, $store);
         }
     }
 
     /**
-     * Unset data by key.
+     * Retrieves a pointer to the data store.
      *
      * @since [*next-version*]
      *
-     * @param string|int|float|bool|Stringable $key The key of data to unset.
-     *
-     * @throws OutOfBoundsException If the key does not exist.
+     * @return array|ArrayAccess|stdClass The data store.
      */
-    abstract protected function _unsetData($key);
+    abstract protected function _getDataStore();
 
     /**
-     * Creates a new Out Of Range exception.
+     * Unsets values with the specified keys on the given container.
      *
      * @since [*next-version*]
      *
-     * @param string|Stringable|null $message  The error message, if any.
-     * @param int|null               $code     The error code, if any.
-     * @param RootException|null     $previous The inner exception for chaining, if any.
-     * @param mixed|null             $argument The invalid argument, if any.
+     * @param array|ArrayAccess|stdClass                                      $container The writable container to unset the values on.
+     * @param string[]|Stringable[]|bool[]|int[]|float[]|Traversable|stdClass $keys      The list keys to unset the values for.
      *
-     * @return OutOfRangeException The new exception.
+     * @throws InvalidArgumentException    If the container or the list of keys is invalid.
+     * @throws OutOfRangeException         If one of the keys is invalid.
+     * @throws NotFoundExceptionInterface  If one of the keys is not found.
+     * @throws ContainerExceptionInterface If problem accessing the container.
      */
-    abstract protected function _createOutOfRangeException(
-        $message = null,
-        $code = null,
-        RootException $previous = null,
-        $argument = null
-    );
-
-    /**
-     * Translates a string, and replaces placeholders.
-     *
-     * @since [*next-version*]
-     * @see sprintf()
-     *
-     * @param string $string  The format string to translate.
-     * @param array  $args    Placeholder values to replace in the string.
-     * @param mixed  $context The context for translation.
-     *
-     * @return string The translated string.
-     */
-    abstract protected function __($string, $args = [], $context = null);
+    abstract protected function _containerUnsetMany(&$container, $keys);
 
     /**
      * Normalizes an iterable.
@@ -104,4 +81,37 @@ trait UnsetManyCapableTrait
      * @return array|Traversable|stdClass The normalized iterable.
      */
     abstract protected function _normalizeIterable($iterable);
+
+    /**
+     * Creates a new Out Of Range exception.
+     *
+     * @since [*next-version*]
+     *
+     * @param string|Stringable|null $message  The error message, if any.
+     * @param int|null               $code     The error code, if any.
+     * @param RootException|null     $previous The inner exception for chaining, if any.
+     * @param mixed|null             $argument The value that is out of range, if any.
+     *
+     * @return OutOfRangeException The new exception.
+     */
+    abstract protected function _createOutOfRangeException(
+        $message = null,
+        $code = null,
+        RootException $previous = null,
+        $argument = null
+    );
+
+    /**
+     * Translates a string, and replaces placeholders.
+     *
+     * @since [*next-version*]
+     * @see   sprintf()
+     *
+     * @param string $string  The format string to translate.
+     * @param array  $args    Placeholder values to replace in the string.
+     * @param mixed  $context The context for translation.
+     *
+     * @return string The translated string.
+     */
+    abstract protected function __($string, $args = [], $context = null);
 }

@@ -5,7 +5,7 @@ namespace Dhii\Data\Object\UnitTest;
 use ArrayObject;
 use InvalidArgumentException;
 use Xpmock\TestCase;
-use Dhii\Data\Object\DataStoreAwareTrait as TestSubject;
+use Dhii\Data\Object\DataStoreAwareContainerTrait as TestSubject;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
@@ -13,14 +13,14 @@ use PHPUnit_Framework_MockObject_MockObject as MockObject;
  *
  * @since [*next-version*]
  */
-class DataStoreAwareTraitTest extends TestCase
+class DataStoreAwareContainerTraitTest extends TestCase
 {
     /**
      * The name of the test subject.
      *
      * @since [*next-version*]
      */
-    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\DataStoreAwareTrait';
+    const TEST_SUBJECT_CLASSNAME = 'Dhii\Data\Object\DataStoreAwareContainerTrait';
 
     /**
      * Creates a new instance of the test subject.
@@ -114,27 +114,6 @@ class DataStoreAwareTraitTest extends TestCase
     }
 
     /**
-     * Tests that the `_getDataStore()` method works correctly when store is empty.
-     *
-     * @since [*next-version*]
-     */
-    public function testGetDataStoreCreate()
-    {
-        $store = $this->createStore();
-        $subject = $this->createInstance();
-        $_subject = $this->reflect($subject);
-
-        $subject->expects($this->exactly(1))
-                ->method('_createDataStore')
-                ->will($this->returnValue($store));
-
-        $_subject->dataStore = null;
-        $result = $_subject->_getDataStore();
-        $this->assertSame($store, $result, 'Initial data state was incorrect');
-        $this->assertSame($_subject->dataStore, $store, 'Subject did not cache the data store');
-    }
-
-    /**
      * Tests that `_getDataStore()` works correctly when store is cached.
      *
      * @since [*next-version*]
@@ -151,15 +130,20 @@ class DataStoreAwareTraitTest extends TestCase
     }
 
     /**
-     * Tests that `_setDataStore()` works as expected when given an {@see ArrayAccess}.
+     * Tests that `_setDataStore()` works as expected..
      *
      * @since [*next-version*]
      */
-    public function testSetDataStoreArrayAccess()
+    public function testSetDataStore()
     {
         $store = $this->createStore();
-        $subject = $this->createInstance();
+        $subject = $this->createInstance(['_normalizeContainer']);
         $_subject = $this->reflect($subject);
+
+        $subject->expects($this->exactly(1))
+            ->method('_normalizeContainer')
+            ->with($store)
+            ->will($this->returnValue($store));
 
         $initialState = $_subject->dataStore;
         $this->assertNull($initialState, 'The initial state of the subject is wrong');
@@ -180,6 +164,9 @@ class DataStoreAwareTraitTest extends TestCase
         $subject = $this->createInstance();
         $_subject = $this->reflect($subject);
 
+        $subject->expects($this->exactly(0))
+            ->method('_normalizeContainer');
+
         $_subject->dataStore = uniqid('store');
         $_subject->_setDataStore($store);
         $modifiedState = $_subject->dataStore;
@@ -195,18 +182,13 @@ class DataStoreAwareTraitTest extends TestCase
     {
         $exception = $this->createInvalidArgumentException('Invalid store');
         $store = uniqid('store');
-        $subject = $this->createInstance();
+        $subject = $this->createInstance(['_normalizeContainer']);
         $_subject = $this->reflect($subject);
 
         $subject->expects($this->exactly(1))
-            ->method('_createInvalidArgumentException')
-            ->with(
-                $this->isType('string'),
-                null,
-                null,
-                $store
-            )
-            ->will($this->returnValue($exception));
+            ->method('_normalizeContainer')
+            ->with($store)
+            ->will($this->throwException($exception));
 
         $this->setExpectedException('InvalidArgumentException');
         $_subject->_setDataStore($store);
