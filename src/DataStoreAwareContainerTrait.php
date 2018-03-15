@@ -41,6 +41,8 @@ trait DataStoreAwareContainerTrait
      * @since [*next-version*]
      *
      * @param array|ArrayAccess|stdClass|ContainerInterface|null $dataStore A container.
+     *
+     * @throws InvalidArgumentException If internal data store is invalid.
      */
     protected function _setDataStore($dataStore)
     {
